@@ -72,10 +72,10 @@ Before you can use any automation features, you must link a WhatsApp account.
 Check the **Settings** page to customize:
 - **App Branding**: Change the dashboard name and logo.
 - **Access Control**: Configure **Whitelist** or **Blacklist** for Bot Commands and Auto Replies.
-- **Timezone**: Ensure your scheduled messages fire at the correct local hour.
+- **Timezone**: Select from all standard global IANA timezones (dynamically loaded) to ensure your scheduled messages fire at the correct local hour.
 - **API Keys**: Manage your secret keys for third-party integrations.
 
 ---
 <div align="center">
-  **Version**: 1.1.2 | **Support**: [GitHub Issues](https://github.com/mrifqidaffaaditya/WA-AKG/issues)
+  **Version**: 1.5.3 | **Support**: [GitHub Issues](https://github.com/mrifqidaffaaditya/WA-AKG/issues)
 </div>

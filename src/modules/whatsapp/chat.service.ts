@@ -131,6 +131,14 @@ export class ChatService {
 
         let msgPayload = { ...messagePayload };
 
+        // Normalize "text" to "caption" if a media message is sent with "text"
+        if (msgPayload.text && (msgPayload.image || msgPayload.video || msgPayload.document || msgPayload.audio)) {
+            if (!msgPayload.caption) {
+                msgPayload.caption = msgPayload.text;
+            }
+            delete msgPayload.text;
+        }
+
         if (msgPayload.sticker && (msgPayload.sticker.url || typeof msgPayload.sticker === 'string')) {
             const url = msgPayload.sticker.url || msgPayload.sticker;
             try {
@@ -146,6 +154,50 @@ export class ChatService {
                 msgPayload = { sticker: await sticker.toBuffer() };
             } catch (e: any) {
                 throw new Error(`Failed to generate sticker from URL: ${e.message}`);
+            }
+        }
+
+        if (msgPayload.image && typeof msgPayload.image === 'object' && msgPayload.image.url) {
+            try {
+                const res = await fetch(msgPayload.image.url);
+                if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+                const buffer = await res.arrayBuffer();
+                msgPayload.image = Buffer.from(buffer);
+            } catch (e: any) {
+                throw new Error(`Failed to fetch image from URL: ${e.message}`);
+            }
+        }
+
+        if (msgPayload.video && typeof msgPayload.video === 'object' && msgPayload.video.url) {
+            try {
+                const res = await fetch(msgPayload.video.url);
+                if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+                const buffer = await res.arrayBuffer();
+                msgPayload.video = Buffer.from(buffer);
+            } catch (e: any) {
+                throw new Error(`Failed to fetch video from URL: ${e.message}`);
+            }
+        }
+
+        if (msgPayload.document && typeof msgPayload.document === 'object' && msgPayload.document.url) {
+            try {
+                const res = await fetch(msgPayload.document.url);
+                if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+                const buffer = await res.arrayBuffer();
+                msgPayload.document = Buffer.from(buffer);
+            } catch (e: any) {
+                throw new Error(`Failed to fetch document from URL: ${e.message}`);
+            }
+        }
+
+        if (msgPayload.audio && typeof msgPayload.audio === 'object' && msgPayload.audio.url) {
+            try {
+                const res = await fetch(msgPayload.audio.url);
+                if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+                const buffer = await res.arrayBuffer();
+                msgPayload.audio = Buffer.from(buffer);
+            } catch (e: any) {
+                throw new Error(`Failed to fetch audio from URL: ${e.message}`);
             }
         }
 

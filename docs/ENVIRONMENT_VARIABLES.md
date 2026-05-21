@@ -86,5 +86,5 @@ TZ="Asia/Jakarta"
 
 ---
 <div align="center">
-  **Last Updated**: 2026-01-17 | **Version**: 1.1.2
+  **Last Updated**: May 2026 | **Version**: 1.5.3
 </div>

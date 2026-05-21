@@ -1,8 +1,8 @@
 # 🏗️ WA-AKG Project Architecture & Logic
 
-> **Version**: 1.1.2  
-> **Last Updated**: January 2026  
-> **Tech Stack**: Next.js 15 (App Router), TypeScript, Prisma, PostgreSQL/MySQL, Baileys, Tailwind CSS.
+> **Version**: 1.5.3  
+> **Last Updated**: May 2026  
+> **Tech Stack**: Next.js 16 (App Router), TypeScript, Prisma, MySQL/PostgreSQL, Baileys, Tailwind CSS.
 
 ---
 
@@ -104,10 +104,12 @@ Every incoming message follows this path:
 
 ## 🚀 Environment & Deployment
 
-Configuration is centralized in `.env`. For production, ensure `NEXT_PUBLIC_SWAGGER_ENABLED` is set appropriately and `AUTH_SECRET` is strong.
+Configuration is centralized in `.env`. The project natively supports standard bare-metal builds (`npm run build`) and Docker containerized deployment (`docker-compose.yml`) which coordinates:
+1. A MySQL 8.0 instance with persistent volume storage for schema data.
+2. Next.js gateway web container running on custom tsx server with automated startup database synchronization (`npx prisma db push`).
 
 > [!IMPORTANT]
-> Always run `npm run db:push` after updates to ensure your schema matches the latest application version.
+> Always run `npm run db:push` after updates on bare-metal, or use Docker Compose which executes this step automatically on container startup.
 
 ---
 <div align="center">

@@ -24,17 +24,20 @@ const checkScheduledMessages = async () => {
             if (instance?.socket) {
                 try {
                     let content: any = {};
-                    // Simple text support for now, expand for media later
                     if (msg.mediaUrl) {
                         const url = msg.mediaUrl;
                         const type = msg.mediaType || 'image'; // Default to image if null
 
+                        const res = await fetch(url);
+                        if (!res.ok) throw new Error(`Failed to fetch media from URL: ${res.status} ${res.statusText}`);
+                        const buffer = Buffer.from(await res.arrayBuffer());
+
                         if (type === 'video') {
-                            content = { video: { url }, caption: msg.content };
+                            content = { video: buffer, caption: msg.content };
                         } else if (type === 'document') {
-                            content = { document: { url }, caption: msg.content, fileName: 'file', mimetype: 'application/octet-stream' };
+                            content = { document: buffer, caption: msg.content, fileName: url.split('/').pop() || 'file', mimetype: 'application/octet-stream' };
                         } else {
-                            content = { image: { url }, caption: msg.content };
+                            content = { image: buffer, caption: msg.content };
                         }
                     } else {
                         content = { text: msg.content };

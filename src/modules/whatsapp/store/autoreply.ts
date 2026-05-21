@@ -153,24 +153,32 @@ export async function bindAutoReply(sock: WASocket, sessionId: string) {
                             const isVideo = url.endsWith('.mp4') || url.endsWith('.avi') || url.endsWith('.mov');
                             const isDocument = url.endsWith('.pdf') || url.endsWith('.doc') || url.endsWith('.docx') || url.endsWith('.zip');
 
-                            if (isVideo) {
-                                await sock.sendMessage(remoteJid, {
-                                    video: { url },
-                                    caption: rule.response
-                                }, { quoted: msg });
-                            } else if (isDocument) {
-                                await sock.sendMessage(remoteJid, {
-                                    document: { url },
-                                    caption: rule.response,
-                                    mimetype: 'application/octet-stream', // Default mimetype
-                                    fileName: url.split('/').pop() || 'document'
-                                }, { quoted: msg });
-                            } else {
-                                // Default to Image
-                                await sock.sendMessage(remoteJid, {
-                                    image: { url },
-                                    caption: rule.response
-                                }, { quoted: msg });
+                            try {
+                                const res = await fetch(url);
+                                if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+                                const buffer = Buffer.from(await res.arrayBuffer());
+
+                                if (isVideo) {
+                                    await sock.sendMessage(remoteJid, {
+                                        video: buffer,
+                                        caption: rule.response
+                                    }, { quoted: msg });
+                                } else if (isDocument) {
+                                    await sock.sendMessage(remoteJid, {
+                                        document: buffer,
+                                        caption: rule.response,
+                                        mimetype: 'application/octet-stream',
+                                        fileName: url.split('/').pop() || 'document'
+                                    }, { quoted: msg });
+                                } else {
+                                    await sock.sendMessage(remoteJid, {
+                                        image: buffer,
+                                        caption: rule.response
+                                    }, { quoted: msg });
+                                }
+                            } catch (err: any) {
+                                logger.error("AutoReply", `Failed to send media auto-reply from URL: ${err.message}. Falling back to text.`);
+                                await sock.sendMessage(remoteJid, { text: rule.response }, { quoted: msg });
                             }
                         } else {
                             await sock.sendMessage(remoteJid, { text: rule.response }, { quoted: msg });

@@ -20,6 +20,22 @@ export default function SettingsPage() {
         enableRegistration: true
     });
     const [systemLoading, setSystemLoading] = useState(false);
+    const [timezones, setTimezones] = useState<string[]>(["UTC", "Asia/Jakarta", "Asia/Makassar", "Asia/Jayapura"]);
+
+    useEffect(() => {
+        try {
+            if (typeof Intl !== "undefined" && Intl.supportedValuesOf) {
+                const list = Intl.supportedValuesOf("timeZone");
+                if (!list.includes("UTC")) {
+                    list.push("UTC");
+                }
+                list.sort();
+                setTimezones(list);
+            }
+        } catch (e) {
+            console.error("Failed to load timezones dynamically", e);
+        }
+    }, []);
 
     useEffect(() => {
         fetch('/api/settings/system')
@@ -115,10 +131,11 @@ export default function SettingsPage() {
                                 onChange={(e) => setSystemConfig(prev => ({ ...prev, timezone: e.target.value }))}
                                 disabled={!isSuperAdmin}
                             >
-                                <option value="Asia/Jakarta">Asia/Jakarta (WIB)</option>
-                                <option value="Asia/Makassar">Asia/Makassar (WITA)</option>
-                                <option value="Asia/Jayapura">Asia/Jayapura (WIT)</option>
-                                <option value="UTC">UTC</option>
+                                {timezones.map((tz) => (
+                                    <option key={tz} value={tz}>
+                                        {tz}
+                                    </option>
+                                ))}
                             </select>
                             <p className="text-xs text-muted-foreground">Scheduler will use this timezone.</p>
                         </div>
