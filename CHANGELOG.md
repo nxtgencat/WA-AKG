@@ -1,3 +1,22 @@
+## [v1.5.4] - 2026-05-21
+
+### Added
+- **Docker Integration**: Added a multi-stage `Dockerfile` to package and build the Next.js web application.
+- **Dynamic Timezone Settings**: Replaced hardcoded timezone selections in settings with dynamically generated list options fetched using browser `Intl` APIs.
+- **Modals for Editing Operations**: Shifted editing interfaces (for webhooks, scheduler, labels, and auto-replies) from inline forms to modal dialog popups (`Dialog` components) for cleaner and decoupled creation/modification workflows.
+
+### Fixed
+- **Security Hardening**:
+  - Prevented IDOR (Insecure Direct Object Reference) exploits across Webhooks (PUT/DELETE), Scheduler (PUT), and System Monitor GET endpoints by enforcing session ownership constraints.
+  - Eliminated raw SQL querying (`queryRawUnsafe`) inside the Anti-Spam module, replacing it with secure, type-safe Prisma Client APIs.
+- **Media Messaging with Captions**: Patched Baileys media sending by downloading web-based media URLs to buffers and passing them with appropriate normalized caption metadata.
+- **UI/UX Refinements**:
+  - Redesigned the topbar Session Selector dropdown with connection status badges, visual styling, and mobile responsiveness.
+  - Restricted navigation visibility on the Sidebar to hide menu items that are not permitted for the user's role.
+  - Fixed unbalanced JSX tags in bot settings page and type safety issues in navigation item filters.
+
+---
+
 ## [v1.5.3.3] - 2026-04-19
 
 ### Fixed
