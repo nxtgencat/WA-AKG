@@ -1,3 +1,17 @@
+## [v1.6.0-beta.1] - 2026-06-03
+
+### Added
+- **Message Editing**: Introduced a new endpoint `PATCH /api/messages/[sessionId]/[jid]/[messageId]` to edit sent text messages.
+
+### Changed
+- **Cleaned Deprecated Endpoints**: Removed over 45 deprecated legacy endpoints from the codebase. Regenerated the Swagger specification and `API_DOCUMENTATION.md` so that it accurately reflects the 81 active routes.
+
+### Fixed
+- **Webhook Management**: Fixed a bug where webhooks could not be edited or deleted. The backend now robustly queries sessions using both internal CUIDs and external string identifiers to resolve lookups.
+- **Timezone Settings Alignment**: Fixed an issue where the Timezone configuration set in the WebApp settings was not visually respected by the Scheduler list or Navbar Real-time Clock (which previously fell back to the browser's local timezone). Both now strictly adhere to the system-configured timezone.
+
+---
+
 ## [v1.5.4] - 2026-05-21
 
 ### Added
