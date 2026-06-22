@@ -127,7 +127,7 @@ export function ChatList({ sessionId, onSelectChat, selectedJid }: ChatListProps
     const [hasMore, setHasMore] = useState(true);
 
     const { getSocket, joinSession } = useSocket();
-    const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
+    const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const fetchChats = useCallback(async (loadOffset = 0, append = false) => {
         try {
