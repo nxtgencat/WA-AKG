@@ -8,11 +8,11 @@ export const getApiDocs = () => {
             openapi: "3.0.0",
             info: {
                 title: "WA-AKG API Documentation",
-                version: "1.2.0",
+                version: "1.3.0",
                 description: `
 # WhatsApp AI Gateway - Complete API Reference
 
-Professional WhatsApp Gateway with **64 API endpoints** for complete WhatsApp automation.
+Professional WhatsApp Gateway with **68 API endpoints** for complete WhatsApp automation.
 
 ## 🔐 Authentication
 All endpoints require authentication via:
@@ -177,6 +177,31 @@ All endpoints require authentication via:
                             descOwner: { type: "string" },
                             descId: { type: "string" },
                             owner: { type: "string" }
+                        }
+                    },
+                    BroadcastLog: {
+                        type: "object",
+                        properties: {
+                            id: { type: "string" },
+                            sessionId: { type: "string" },
+                            message: { type: "string" },
+                            total: { type: "integer" },
+                            sent: { type: "integer" },
+                            failed: { type: "integer" },
+                            status: { type: "string", enum: ["running", "completed", "cancelled"] },
+                            delay: { type: "integer" },
+                            startedAt: { type: "string", format: "date-time" },
+                            completedAt: { type: "string", format: "date-time", nullable: true }
+                        }
+                    },
+                    BroadcastRecipient: {
+                        type: "object",
+                        properties: {
+                            id: { type: "string" },
+                            jid: { type: "string" },
+                            status: { type: "string", enum: ["pending", "sent", "failed"] },
+                            error: { type: "string", nullable: true },
+                            sentAt: { type: "string", format: "date-time", nullable: true }
                         }
                     }
                 },
@@ -1115,6 +1140,92 @@ All endpoints require authentication via:
                             403: { $ref: "#/components/responses/Forbidden" },
                             503: { $ref: "#/components/responses/SessionNotReady" },
                             500: { description: "Failed to start broadcast" }
+                        }
+                    }
+                },
+
+                "/messages/{sessionId}/broadcast/history": {
+                    get: {
+                        tags: ["Messaging"],
+                        summary: "Get broadcast history",
+                        description: "Retrieve list of past broadcasts with status, sent/failed counts (persisted in DB)",
+                        parameters: [
+                            { name: "sessionId", in: "path", required: true, schema: { type: "string" } },
+                            { name: "limit", in: "query", schema: { type: "integer", default: 20 }, description: "Max results (max 50)" },
+                            { name: "offset", in: "query", schema: { type: "integer", default: 0 }, description: "Pagination offset" }
+                        ],
+                        responses: {
+                            200: {
+                                description: "Broadcast history",
+                                content: {
+                                    "application/json": {
+                                        schema: {
+                                            type: "object",
+                                            properties: {
+                                                status: { type: "boolean", example: true },
+                                                data: {
+                                                    type: "array",
+                                                    items: { $ref: "#/components/schemas/BroadcastLog" }
+                                                },
+                                                total: { type: "integer" },
+                                                limit: { type: "integer" },
+                                                offset: { type: "integer" }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            401: { $ref: "#/components/responses/Unauthorized" },
+                            403: { $ref: "#/components/responses/Forbidden" }
+                        }
+                    }
+                },
+
+                "/messages/{sessionId}/broadcast/history/{logId}": {
+                    get: {
+                        tags: ["Messaging"],
+                        summary: "Get broadcast detail",
+                        description: "Retrieve full detail of a specific broadcast including per-recipient status",
+                        parameters: [
+                            { name: "sessionId", in: "path", required: true, schema: { type: "string" } },
+                            { name: "logId", in: "path", required: true, schema: { type: "string" } }
+                        ],
+                        responses: {
+                            200: {
+                                description: "Broadcast detail",
+                                content: {
+                                    "application/json": {
+                                        schema: {
+                                            type: "object",
+                                            properties: {
+                                                status: { type: "boolean", example: true },
+                                                data: {
+                                                    type: "object",
+                                                    properties: {
+                                                        id: { type: "string" },
+                                                        sessionId: { type: "string" },
+                                                        message: { type: "string" },
+                                                        total: { type: "integer" },
+                                                        sent: { type: "integer" },
+                                                        failed: { type: "integer" },
+                                                        status: { type: "string" },
+                                                        delay: { type: "integer" },
+                                                        startedAt: { type: "string", format: "date-time" },
+                                                        completedAt: { type: "string", format: "date-time", nullable: true },
+                                                        recipients: {
+                                                            type: "array",
+                                                            items: { $ref: "#/components/schemas/BroadcastRecipient" }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            401: { $ref: "#/components/responses/Unauthorized" },
+                            403: { $ref: "#/components/responses/Forbidden" },
+                            404: { description: "Broadcast not found" }
                         }
                     }
                 },
