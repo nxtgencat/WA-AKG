@@ -35,7 +35,7 @@ export class ChatService {
             ${before ? 'AND m1.timestamp < ?' : ''}
             ORDER BY m1.timestamp DESC
             LIMIT ?
-        `, before
+        `, ...(before
             ? [dbSessionId, dbSessionId, new Date(before), limit]
             : [dbSessionId, dbSessionId, limit]);
 
