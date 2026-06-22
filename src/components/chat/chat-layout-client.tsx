@@ -26,11 +26,13 @@ export function ChatLayoutClient({ sessionId }: ChatLayoutClientProps) {
     };
 
     return (
-        <div className="flex h-full bg-background rounded-xl border border-border/40 shadow-sm overflow-hidden">
-            {/* Chat List Panel — always rendered, hidden on mobile when chat selected */}
-            <div className={`w-full md:w-80 lg:w-[340px] border-r border-border/30 h-full overflow-hidden flex-shrink-0
-                ${selectedChat ? "hidden md:flex md:flex-col" : "flex flex-col"}`}
+        // Outer: flex row, full height, overflow hidden — containment chain root
+        <div className="flex h-full bg-background rounded-xl border border-border/40 shadow-sm overflow-hidden min-h-0">
+            {/* Chat List Panel */}
+            <div className={`w-full md:w-80 lg:w-[340px] border-r border-border/30 overflow-hidden shrink-0 flex flex-col
+                ${selectedChat ? "hidden md:flex" : "flex"}`}
             >
+                {/* Inner flex-col: header fixed + virtuoso fills rest */}
                 <ChatList
                     sessionId={sessionId}
                     onSelectChat={handleSelectChat}
@@ -39,8 +41,8 @@ export function ChatLayoutClient({ sessionId }: ChatLayoutClientProps) {
             </div>
 
             {/* Chat Window Panel */}
-            <div className={`flex-1 h-full overflow-hidden
-                ${!selectedChat ? "hidden md:block" : "block"}`}
+            <div className={`flex-1 overflow-hidden flex flex-col min-w-0
+                ${!selectedChat ? "hidden md:flex" : "flex"}`}
             >
                 {selectedChat ? (
                     <ChatWindow
@@ -50,7 +52,7 @@ export function ChatLayoutClient({ sessionId }: ChatLayoutClientProps) {
                         onBack={handleBack}
                     />
                 ) : (
-                    <div className="flex h-full items-center justify-center">
+                    <div className="flex-1 flex items-center justify-center min-w-0 min-h-0">
                         <div className="text-center p-6">
                             <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
                                 <MessageCircle className="h-8 w-8 text-muted-foreground/40" />

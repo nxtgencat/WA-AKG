@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Virtuoso } from "react-virtuoso";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +22,7 @@ interface ChatContact {
         content: string | null;
         timestamp: string;
         type: string;
-    }
+    };
 }
 
 interface ChatListProps {
@@ -31,7 +32,90 @@ interface ChatListProps {
 }
 
 const PAGE_SIZE = 50;
-const VISIBLE_BUFFER = 10; // items to render above/below viewport
+
+function getDisplayName(chat: ChatContact): string {
+    return chat.name || chat.notify || chat.jid.split('@')[0];
+}
+
+function getMessagePreview(chat: ChatContact): string {
+    if (!chat.lastMessage?.content) return "No messages yet";
+    const content = chat.lastMessage.content;
+    if (chat.lastMessage.type !== "TEXT") {
+        return `📎 ${chat.lastMessage.type.charAt(0) + chat.lastMessage.type.slice(1).toLowerCase()}`;
+    }
+    return content.length > 40 ? content.slice(0, 40) + "…" : content;
+}
+
+function getTimeLabel(timestamp: string): string {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return date.toLocaleDateString([], { weekday: 'short' });
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+function ChatRow({
+    chat,
+    isSelected,
+    onSelect,
+}: {
+    chat: ChatContact;
+    isSelected: boolean;
+    onSelect: (jid: string, name?: string) => void;
+}) {
+    const displayName = getDisplayName(chat);
+    return (
+        <button
+            key={chat.jid + (chat.lastMessage?.timestamp || '')}
+            className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors duration-150 border-b border-border/10 overflow-hidden",
+                isSelected
+                    ? "bg-primary/8 border-l-2 border-l-primary"
+                    : "hover:bg-muted/40 border-l-2 border-l-transparent"
+            )}
+            onClick={() => onSelect(chat.jid, displayName)}
+        >
+            <Avatar className="h-10 w-10 flex-shrink-0">
+                <AvatarImage src={chat.profilePic || ""} />
+                <AvatarFallback className="text-xs font-medium bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary">
+                    {displayName.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0 overflow-hidden">
+                <div className="flex justify-between items-baseline gap-2 overflow-hidden">
+                    <h4 className={cn(
+                        "text-sm truncate",
+                        isSelected ? "font-semibold text-primary" : "font-medium text-foreground"
+                    )}>
+                        {displayName}
+                    </h4>
+                    {chat.lastMessage && (
+                        <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                            {getTimeLabel(chat.lastMessage.timestamp)}
+                        </span>
+                    )}
+                </div>
+                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                    {getMessagePreview(chat)}
+                </p>
+            </div>
+        </button>
+    );
+}
+
+function SkeletonRow() {
+    return (
+        <div className="flex items-center gap-3 px-3 py-2.5">
+            <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
+            <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-3.5 w-28" />
+                <Skeleton className="h-3 w-40" />
+            </div>
+        </div>
+    );
+}
 
 export function ChatList({ sessionId, onSelectChat, selectedJid }: ChatListProps) {
     const [chats, setChats] = useState<ChatContact[]>([]);
@@ -41,23 +125,13 @@ export function ChatList({ sessionId, onSelectChat, selectedJid }: ChatListProps
     const [newChatNumber, setNewChatNumber] = useState("");
     const [offset, setOffset] = useState(0);
     const [hasMore, setHasMore] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
 
     const { getSocket, joinSession } = useSocket();
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
     const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
-    // Track visible range for virtual scrolling
-    const [visibleRange, setVisibleRange] = useState({ start: 0, end: PAGE_SIZE });
-    const itemHeights = useRef<Map<number, number>>(new Map());
-    const itemOffsets = useRef<number[]>([]);
-
-    // Fetch initial chats
     const fetchChats = useCallback(async (loadOffset = 0, append = false) => {
         try {
             if (loadOffset === 0) setLoading(true);
-            else setLoadingMore(true);
 
             const rawChats: any = await getChatsStatus(
                 sessionId,
@@ -97,7 +171,6 @@ export function ChatList({ sessionId, onSelectChat, selectedJid }: ChatListProps
             console.error("Failed to load chats", error);
         } finally {
             setLoading(false);
-            setLoadingMore(false);
         }
     }, [sessionId, searchQuery]);
 
@@ -109,15 +182,13 @@ export function ChatList({ sessionId, onSelectChat, selectedJid }: ChatListProps
         fetchChats(0, false);
     }, [fetchChats]);
 
-    // Socket real-time updates — single connection
+    // Socket real-time updates
     useEffect(() => {
         const socket = getSocket();
         if (!socket) return;
 
         const onConnect = () => joinSession(sessionId);
-        if (socket.connected) {
-            joinSession(sessionId);
-        }
+        if (socket.connected) joinSession(sessionId);
         socket.on("connect", onConnect);
 
         const handler = async (newMessages: any[]) => {
@@ -125,42 +196,30 @@ export function ChatList({ sessionId, onSelectChat, selectedJid }: ChatListProps
 
             setChats(prev => {
                 const updated = [...prev];
-
                 newMessages.forEach(msg => {
                     const jid = msg.remoteJid;
                     const idx = updated.findIndex(c => c.jid === jid);
-
                     if (idx !== -1) {
                         updated[idx] = {
                             ...updated[idx],
-                            lastMessage: {
-                                content: msg.content,
-                                timestamp: msg.timestamp,
-                                type: msg.type
-                            }
+                            lastMessage: { content: msg.content, timestamp: msg.timestamp, type: msg.type }
                         };
                     } else {
-                        // New chat — schedule a reload
                         needsReload = true;
                     }
                 });
-
                 updated.sort((a, b) => {
                     const tA = a.lastMessage?.timestamp ? new Date(a.lastMessage.timestamp).getTime() : 0;
                     const tB = b.lastMessage?.timestamp ? new Date(b.lastMessage.timestamp).getTime() : 0;
                     return tB - tA;
                 });
-
                 return updated;
             });
 
-            if (needsReload) {
-                fetchChats(0, false);
-            }
+            if (needsReload) fetchChats(0, false);
         };
 
         socket.on("message.update", handler);
-
         return () => {
             socket.off("connect", onConnect);
             socket.off("message.update", handler);
@@ -177,53 +236,7 @@ export function ChatList({ sessionId, onSelectChat, selectedJid }: ChatListProps
         }, 300);
     };
 
-    // Scroll handler for infinite loading
-    const handleScroll = useCallback(() => {
-        const el = scrollRef.current;
-        if (!el || loadingMore || !hasMore) return;
-
-        if (el.scrollHeight - el.scrollTop - el.clientHeight < 200) {
-            fetchChats(offset, true);
-        }
-    }, [loadingMore, hasMore, fetchChats, offset]);
-
-    // Virtual scrolling: update visible range on scroll
-    useEffect(() => {
-        const el = scrollRef.current;
-        if (!el) return;
-
-        const onScroll = () => {
-            const scrollTop = el!.scrollTop;
-            const viewport = el!.clientHeight;
-
-            // Binary search to find visible range
-            // Simple approach: calculate which items are visible
-            let acc = 0;
-            let startIdx = 0;
-            let endIdx = chats.length;
-
-            for (let i = 0; i < chats.length; i++) {
-                const h = 72; // approximate item height
-                if (acc + h < scrollTop - VISIBLE_BUFFER * h) {
-                    startIdx = i + 1;
-                }
-                if (acc < scrollTop + viewport + VISIBLE_BUFFER * h) {
-                    endIdx = i + 1;
-                }
-                acc += h;
-            }
-
-            setVisibleRange({
-                start: Math.max(0, startIdx - VISIBLE_BUFFER),
-                end: Math.min(chats.length, endIdx + VISIBLE_BUFFER)
-            });
-        };
-
-        el.addEventListener("scroll", onScroll, { passive: true });
-        return () => el.removeEventListener("scroll", onScroll);
-    }, [chats.length]);
-
-    // Filter chats based on search query
+    // Filter by search
     const filteredChats = useMemo(() => {
         if (!searchQuery.trim()) return chats;
         const q = searchQuery.toLowerCase();
@@ -234,33 +247,18 @@ export function ChatList({ sessionId, onSelectChat, selectedJid }: ChatListProps
         });
     }, [chats, searchQuery]);
 
-    const getContactDisplayName = (chat: ChatContact): string => {
-        return chat.name || chat.notify || chat.jid.split('@')[0];
-    };
-
-    const getMessagePreview = (chat: ChatContact): string => {
-        if (!chat.lastMessage?.content) return "No messages yet";
-        const content = chat.lastMessage.content;
-        if (chat.lastMessage.type !== "TEXT") {
-            return `📎 ${chat.lastMessage.type.charAt(0) + chat.lastMessage.type.slice(1).toLowerCase()}`;
+    const handleEndReached = useCallback(() => {
+        if (hasMore && !loading && !searchQuery.trim()) {
+            fetchChats(offset, true);
         }
-        return content.length > 40 ? content.slice(0, 40) + "…" : content;
-    };
+    }, [hasMore, loading, searchQuery, fetchChats, offset]);
 
-    const getTimeLabel = (timestamp: string): string => {
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 0) {
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } else if (diffDays === 1) {
-            return "Yesterday";
-        } else if (diffDays < 7) {
-            return date.toLocaleDateString([], { weekday: 'short' });
-        }
-        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    };
+    const itemContent = useCallback(
+        (_: number, chat: ChatContact) => (
+            <ChatRow chat={chat} isSelected={selectedJid === chat.jid} onSelect={onSelectChat} />
+        ),
+        [selectedJid, onSelectChat]
+    );
 
     const handleStartNewChat = () => {
         if (!newChatNumber) return;
@@ -272,51 +270,36 @@ export function ChatList({ sessionId, onSelectChat, selectedJid }: ChatListProps
         setNewChatNumber("");
     };
 
-    if (loading) {
+    if (loading && chats.length === 0) {
         return (
-            <div className="p-3 space-y-3">
-                <Skeleton className="h-9 w-full rounded-lg" />
-                {[1, 2, 3, 4, 5].map(i => (
-                    <div key={i} className="flex items-center gap-3 p-2">
-                        <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
-                        <div className="flex-1 space-y-1.5">
-                            <Skeleton className="h-3.5 w-28" />
-                            <Skeleton className="h-3 w-40" />
-                        </div>
-                    </div>
-                ))}
+            <div className="flex flex-col h-full overflow-hidden">
+                <div className="p-3 space-y-3">
+                    <Skeleton className="h-9 w-full rounded-lg" />
+                    {[1, 2, 3, 4, 5].map(i => <SkeletonRow key={i} />)}
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col h-full overflow-hidden" ref={containerRef}>
-            {/* Header */}
-            <div className="px-3 pt-3 pb-2 space-y-2 flex-shrink-0">
+        <div className="flex flex-col h-full overflow-hidden bg-background">
+            {/* Header — fixed */}
+            <div className="shrink-0 px-3 pt-3 pb-2 space-y-2 border-b border-border/10">
                 <div className="flex justify-between items-center">
                     <h3 className="font-semibold text-base text-foreground">
                         Chats
                         {chats.length > 0 && (
-                            <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                                ({chats.length})
-                            </span>
+                            <span className="ml-1.5 text-xs font-normal text-muted-foreground">({chats.length})</span>
                         )}
                     </h3>
                     <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-lg"
+                        variant="ghost" size="icon" className="h-8 w-8 rounded-lg"
                         onClick={() => setIsNewChatOpen(!isNewChatOpen)}
                     >
-                        {isNewChatOpen ? (
-                            <X className="h-4 w-4" />
-                        ) : (
-                            <MessageSquarePlus className="h-4 w-4" />
-                        )}
+                        {isNewChatOpen ? <X className="h-4 w-4" /> : <MessageSquarePlus className="h-4 w-4" />}
                     </Button>
                 </div>
 
-                {/* Search */}
                 <div className="relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                     <Input
@@ -327,7 +310,6 @@ export function ChatList({ sessionId, onSelectChat, selectedJid }: ChatListProps
                     />
                 </div>
 
-                {/* New Chat Form */}
                 {isNewChatOpen && (
                     <div className="p-2.5 bg-muted/30 rounded-lg space-y-2 border border-border/40">
                         <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Phone Number</Label>
@@ -345,12 +327,8 @@ export function ChatList({ sessionId, onSelectChat, selectedJid }: ChatListProps
                 )}
             </div>
 
-            {/* Chat List */}
-            <div
-                ref={scrollRef}
-                className="flex-1 overflow-y-auto styled-scrollbar will-change-transform"
-                onScroll={handleScroll}
-            >
+            {/* Scrollable list — Virtuoso with full height */}
+            <div className="flex-1 min-h-0">
                 {filteredChats.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
                         <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
@@ -361,61 +339,24 @@ export function ChatList({ sessionId, onSelectChat, selectedJid }: ChatListProps
                         </p>
                     </div>
                 ) : (
-                    <div className="divide-y divide-border/10">
-                        {filteredChats.slice(visibleRange.start, visibleRange.end).map((chat, i) => {
-                            const displayName = getContactDisplayName(chat);
-                            const isSelected = selectedJid === chat.jid;
-                            const actualIdx = visibleRange.start + i;
-                            return (
-                                <button
-                                    key={chat.jid + (chat.lastMessage?.timestamp || '')}
-                                    className={cn(
-                                        "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors duration-150 border-b border-border/10 overflow-hidden",
-                                        isSelected
-                                            ? "bg-primary/8 border-l-2 border-l-primary"
-                                            : "hover:bg-muted/40 border-l-2 border-l-transparent"
-                                    )}
-                                    onClick={() => onSelectChat(chat.jid, displayName)}
-                                >
-                                    <Avatar className="h-10 w-10 flex-shrink-0">
-                                        <AvatarImage src={chat.profilePic || ""} />
-                                        <AvatarFallback className="text-xs font-medium bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary">
-                                            {displayName.slice(0, 2).toUpperCase()}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 min-w-0 overflow-hidden">
-                                        <div className="flex justify-between items-baseline gap-2 overflow-hidden">
-                                            <h4 className={cn(
-                                                "text-sm truncate",
-                                                isSelected ? "font-semibold text-primary" : "font-medium text-foreground"
-                                            )}>
-                                                {displayName}
-                                            </h4>
-                                            {chat.lastMessage && (
-                                                <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                                                    {getTimeLabel(chat.lastMessage.timestamp)}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p className="text-xs text-muted-foreground truncate mt-0.5">
-                                            {getMessagePreview(chat)}
-                                        </p>
+                    <Virtuoso
+                        style={{ height: "100%" }}
+                        data={filteredChats}
+                        computeItemKey={(_, chat) => chat.jid}
+                        itemContent={itemContent}
+                        endReached={handleEndReached}
+                        increaseViewportBy={200}
+                        components={{
+                            Footer: () =>
+                                hasMore && !loading ? (
+                                    <div className="py-4 text-center">
+                                        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                                            Scroll for more
+                                        </span>
                                     </div>
-                                </button>
-                            );
-                        })}
-                        {/* Loading indicator */}
-                        {loadingMore && (
-                            <div className="flex items-center justify-center py-4">
-                                <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Bottom sentinel for loading more */}
-                {hasMore && !loadingMore && filteredChats.length > 0 && (
-                    <div className="h-8" />
+                                ) : null,
+                        }}
+                    />
                 )}
             </div>
         </div>
