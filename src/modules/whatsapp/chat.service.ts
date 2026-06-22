@@ -17,6 +17,11 @@ export class ChatService {
     ) {
         // 1. Get latest message per remoteJid with cursor pagination
         // Uses m1.timestamp < before (when provided) to load older chats
+        // Build params: [dbSessionId, dbSessionId, (before?), limit]
+        const qParams: any[] = [dbSessionId, dbSessionId];
+        if (before) qParams.push(new Date(before));
+        qParams.push(limit);
+
         const rawLastMessages = await prisma.$queryRawUnsafe<Array<{
             remoteJid: string;
             content: string | null;
@@ -35,9 +40,7 @@ export class ChatService {
             ${before ? 'AND m1.timestamp < ?' : ''}
             ORDER BY m1.timestamp DESC
             LIMIT ?
-        `, ...(before
-            ? [dbSessionId, dbSessionId, new Date(before), limit]
-            : [dbSessionId, dbSessionId, limit]);
+        `, ...qParams);
 
         // Fast return if no messages
         if (rawLastMessages.length === 0) return [];
