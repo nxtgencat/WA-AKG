@@ -5,99 +5,134 @@ import Sticker from "wa-sticker-formatter";
 
 export class ChatService {
     /**
-     * Get the active chats list for a session, including last message preview.
+     * Get active chats list for a session with last message preview.
+     * Uses single GROUP BY query instead of N+1 findFirst per jid.
+     * Supports pagination & search.
      */
-    static async getChatsList(dbSessionId: string) {
-        // 1. Get contacts
-        const contacts = await prisma.contact.findMany({
-            where: { sessionId: dbSessionId },
-            orderBy: { updatedAt: 'desc' },
-            select: { jid: true, name: true, notify: true, profilePic: true }
-        });
-
-        // 2. Get Groups for subjects
-        const groups = await prisma.group.findMany({
-            where: { sessionId: dbSessionId },
-            select: { jid: true, subject: true }
-        });
-
-        // 3. Get distinct remoteJids from messages (for chats without a saved contact)
-        const messagesWithDistinctJids = await prisma.message.findMany({
-            where: { sessionId: dbSessionId },
-            distinct: ['remoteJid'],
-            select: { remoteJid: true }
-        });
-
-        const allJids = new Set([
-            ...contacts.map(c => c.jid),
-            ...groups.map(g => g.jid),
-            ...messagesWithDistinctJids.map(m => m.remoteJid)
+    static async getChatsList(
+        dbSessionId: string,
+        limit = 50,
+        offset = 0,
+        search?: string
+    ) {
+        // 1. Get contacts & groups in parallel (fast, small queries)
+        const [contacts, groups] = await Promise.all([
+            prisma.contact.findMany({
+                where: { sessionId: dbSessionId },
+                select: { jid: true, name: true, notify: true, profilePic: true }
+            }),
+            prisma.group.findMany({
+                where: { sessionId: dbSessionId },
+                select: { jid: true, subject: true }
+            })
         ]);
 
-        const jidMap = await batchResolveToPhoneJid(Array.from(allJids), dbSessionId);
-        
-        // Map contacts and groups for quick lookup
-        const contactMap = new Map();
-        contacts.forEach(c => contactMap.set(c.jid, c));
-        groups.forEach(g => contactMap.set(g.jid, { jid: g.jid, name: g.subject, notify: g.subject, profilePic: null }));
+        // Build contact/subject lookup maps
+        const infoMap = new Map<string, { name: string | null; notify: string | null; profilePic: string | null }>();
+        contacts.forEach(c => infoMap.set(c.jid, { name: c.name, notify: c.notify, profilePic: c.profilePic }));
+        groups.forEach(g => infoMap.set(g.jid, { name: g.subject, notify: g.subject, profilePic: null }));
 
-        const chatList = await Promise.all(Array.from(allJids).map(async (originalJid) => {
-            const resolvedJid = jidMap.get(originalJid) || originalJid;
-            const normalizedJid = normalizeJid(resolvedJid);
-            const contactInfo = contactMap.get(originalJid) || contactMap.get(normalizedJid) || { jid: normalizedJid, name: null, notify: null, profilePic: null };
+        // 2. Single raw query: get latest message per remoteJid via GROUP BY
+        // Replaces N individual findFirst() calls — critical RAM/speed fix
+        const rawLastMessages = await prisma.$queryRawUnsafe<Array<{
+            remoteJid: string;
+            content: string | null;
+            timestamp: Date;
+            type: string;
+        }>>(`
+            SELECT m1.remoteJid, m1.content, m1.timestamp, m1.type
+            FROM \`Message\` m1
+            INNER JOIN (
+                SELECT remoteJid, MAX(timestamp) as max_ts
+                FROM \`Message\`
+                WHERE sessionId = ?
+                GROUP BY remoteJid
+            ) m2 ON m1.remoteJid = m2.remoteJid AND m1.timestamp = m2.max_ts
+            WHERE m1.sessionId = ?
+            ORDER BY m1.timestamp DESC
+        `, dbSessionId, dbSessionId);
 
-            const lastMessage = await prisma.message.findFirst({
-                where: {
-                    sessionId: dbSessionId,
-                    OR: [{ remoteJid: originalJid }, { remoteJid: normalizedJid }]
-                },
-                orderBy: { timestamp: 'desc' },
-                select: { content: true, timestamp: true, type: true }
-            });
-
-            return {
-                ...contactInfo,
-                jid: normalizedJid,
-                lastMessage: lastMessage ? {
-                    content: lastMessage.content,
-                    timestamp: lastMessage.timestamp.toISOString(),
-                    type: lastMessage.type
-                } : undefined
-            };
-        }));
-
-        // Deduplicate unified list
-        const uniqueChats = new Map();
-        chatList.forEach(chat => {
-            const existing = uniqueChats.get(chat.jid);
-            if (!existing || (chat.lastMessage?.timestamp && (!existing.lastMessage?.timestamp || new Date(chat.lastMessage.timestamp) > new Date(existing.lastMessage.timestamp)))) {
-                uniqueChats.set(chat.jid, chat);
+        // 3. Build result map from raw messages
+        const resultMap = new Map<string, any>();
+        for (const msg of rawLastMessages) {
+            if (!resultMap.has(msg.remoteJid)) {
+                const info = infoMap.get(msg.remoteJid);
+                resultMap.set(msg.remoteJid, {
+                    jid: msg.remoteJid,
+                    name: info?.name || null,
+                    notify: info?.notify || null,
+                    profilePic: info?.profilePic || null,
+                    lastMessage: {
+                        content: msg.content,
+                        timestamp: msg.timestamp instanceof Date
+                            ? msg.timestamp.toISOString()
+                            : String(msg.timestamp),
+                        type: msg.type
+                    }
+                });
             }
-        });
+        }
 
-        const finalChats = Array.from(uniqueChats.values());
+        // 4. Add contacts/groups that have NO messages (no last message, but still in contact list)
+        for (const [jid, info] of infoMap) {
+            if (!resultMap.has(jid)) {
+                // Resolve LID to phone JID for contact lookup
+                const resolvedMap = await batchResolveToPhoneJid([jid], dbSessionId);
+                const resolvedJid = resolvedMap.get(jid) || jid;
+                if (!resultMap.has(resolvedJid)) {
+                    resultMap.set(resolvedJid, {
+                        jid: normalizeJid(resolvedJid),
+                        name: info.name,
+                        notify: info.notify,
+                        profilePic: info.profilePic
+                    });
+                }
+            }
+        }
 
+        // 5. Sort by last message timestamp desc
+        const finalChats = Array.from(resultMap.values());
         finalChats.sort((a, b) => {
             const tA = a.lastMessage?.timestamp ? new Date(a.lastMessage.timestamp).getTime() : 0;
             const tB = b.lastMessage?.timestamp ? new Date(b.lastMessage.timestamp).getTime() : 0;
             return tB - tA;
         });
 
-        return finalChats;
+        // 6. Apply search filter if provided
+        let filtered = finalChats;
+        if (search && search.trim()) {
+            const q = search.toLowerCase();
+            filtered = finalChats.filter(c =>
+                (c.name || '').toLowerCase().includes(q) ||
+                (c.notify || '').toLowerCase().includes(q) ||
+                c.jid.toLowerCase().includes(q)
+            );
+        }
+
+        // 7. Apply pagination
+        const paged = filtered.slice(offset, offset + limit);
+
+        return paged;
     }
 
     /**
-     * Get recent messages for a specific chat.
+     * Get messages for a specific chat with cursor pagination (infinite scroll).
+     * @param before ISO timestamp — load messages older than this
+     * @param limit max messages to return
      */
-    static async getMessages(dbSessionId: string, jid: string, take: number = 100) {
-        // Query with normalized JID to handle @c.us / @s.whatsapp.net variations
+    static async getMessages(
+        dbSessionId: string,
+        jid: string,
+        limit = 50,
+        before?: string
+    ) {
         const normalizedJid = normalizeJid(jid);
-        
-        // Find if this contact has both LID and Phone JID in the database
+
+        // Find contact variations (LID, alt JIDs)
         const contact = await prisma.contact.findFirst({
             where: {
                 sessionId: dbSessionId,
-                OR: [{ jid: jid }, { lid: jid }, { remoteJidAlt: jid }, { jid: normalizedJid }]
+                OR: [{ jid }, { lid: jid }, { remoteJidAlt: jid }, { jid: normalizedJid }]
             },
             select: { jid: true, lid: true, remoteJidAlt: true }
         });
@@ -109,24 +144,61 @@ export class ChatService {
             if (contact.remoteJidAlt) queryJids.add(contact.remoteJidAlt);
         }
 
+        const where: any = {
+            sessionId: dbSessionId,
+            remoteJid: { in: Array.from(queryJids) }
+        };
+
+        // Cursor-based: load older messages before this timestamp
+        if (before) {
+            where.timestamp = { lt: new Date(before) };
+        }
+
         const messages = await prisma.message.findMany({
-            where: {
-                sessionId: dbSessionId,
-                remoteJid: { in: Array.from(queryJids) }
-            },
+            where,
             orderBy: { timestamp: 'desc' },
-            take
+            take: limit + 1 // fetch 1 extra to know if there's more
         });
-        return messages.reverse();
+
+        const hasMore = messages.length > limit;
+        if (hasMore) messages.pop();
+
+        // Return chronological order (oldest first)
+        return {
+            messages: messages.reverse(),
+            hasMore
+        };
     }
 
     /**
      * Send a text message, optionally with mentions and stickers if formatted as URL.
      */
-    static async sendTextMessage(sessionId: string, jid: string, messagePayload: any, mentions?: string[]) {
+    static async sendTextMessage(sessionId: string, jid: string, messagePayload: any, mentions?: string[], quotedMessageId?: string) {
         const instance = waManager.getInstance(sessionId);
         if (!instance || !instance.socket) {
             throw new Error("WhatsApp session is disconnected or not found");
+        }
+
+        // Handle quoted/reply message
+        if (quotedMessageId) {
+            try {
+                const dbSession = await prisma.session.findUnique({ where: { sessionId }, select: { id: true } });
+                if (dbSession) {
+                    const quotedMsg = await prisma.message.findFirst({
+                        where: { sessionId: dbSession.id, keyId: quotedMessageId },
+                        select: { keyId: true, remoteJid: true, fromMe: true, content: true, timestamp: true }
+                    });
+                    if (quotedMsg && typeof messagePayload === 'object' && !messagePayload.quoted) {
+                        (messagePayload as any).contextInfo = {
+                            stanzaId: quotedMsg.keyId,
+                            participant: quotedMsg.fromMe ? undefined : quotedMsg.remoteJid,
+                            quotedMessage: { conversation: quotedMsg.content || "" }
+                        };
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching quoted message (non-fatal):", e);
+            }
         }
 
         let msgPayload = { ...messagePayload };
@@ -212,12 +284,12 @@ export class ChatService {
      * Send a media message locally from a buffer.
      */
     static async sendMediaMessage(
-        sessionId: string, 
-        jid: string, 
-        buffer: Buffer, 
-        type: string, 
+        sessionId: string,
+        jid: string,
+        buffer: Buffer,
+        type: string,
         mimetype: string,
-        fileName: string, 
+        fileName: string,
         caption: string
     ) {
         const instance = waManager.getInstance(sessionId);
@@ -228,19 +300,19 @@ export class ChatService {
         const messageOptions: any = {};
         if (caption) messageOptions.caption = caption;
         messageOptions.mimetype = mimetype;
-        
+
         let content: any = {};
 
         if (type === 'image') {
             content = { image: buffer, ...messageOptions };
         } else if (type === 'video') {
-             content = { video: buffer, ...messageOptions };
+            content = { video: buffer, ...messageOptions };
         } else if (type === 'audio') {
-             content = { audio: buffer, mimetype: 'audio/mp4', ptt: false };
+            content = { audio: buffer, mimetype: 'audio/mp4', ptt: false };
         } else if (type === 'voice') {
-             content = { audio: buffer, mimetype: 'audio/mp4', ptt: true };
+            content = { audio: buffer, mimetype: 'audio/mp4', ptt: true };
         } else if (type === 'document') {
-             content = { document: buffer, mimetype, fileName, ...messageOptions };
+            content = { document: buffer, mimetype, fileName, ...messageOptions };
         } else if (type === 'sticker') {
             const sticker = new Sticker(buffer, {
                 pack: "WA-AKG Bot",
@@ -250,7 +322,7 @@ export class ChatService {
             });
             content = { sticker: await sticker.toBuffer() };
         } else {
-             content = { document: buffer, mimetype, fileName, ...messageOptions };
+            content = { document: buffer, mimetype, fileName, ...messageOptions };
         }
 
         return await instance.socket.sendMessage(jid, content);

@@ -5,8 +5,13 @@ import { ChatService } from "@/modules/whatsapp/chat.service";
 import { getAuthenticatedUserForAction } from "@/lib/server-action-auth";
 import { canAccessSession } from "@/lib/api-auth";
 
-// Fetch chat list
-export async function getChatsStatus(sessionId: string) {
+// Fetch chat list with pagination & search
+export async function getChatsStatus(
+    sessionId: string,
+    limit = 50,
+    offset = 0,
+    search?: string
+) {
     const user = await getAuthenticatedUserForAction();
     if (!user) throw new Error("Unauthorized");
 
@@ -19,12 +24,17 @@ export async function getChatsStatus(sessionId: string) {
     });
 
     if (!session) throw new Error("Session not found");
-    
-    return await ChatService.getChatsList(session.id);
+
+    return await ChatService.getChatsList(session.id, limit, offset, search);
 }
 
-// Fetch messages for a specific chat
-export async function getChatMessages(sessionId: string, jid: string) {
+// Fetch messages for a specific chat with cursor pagination
+export async function getChatMessages(
+    sessionId: string,
+    jid: string,
+    limit = 50,
+    before?: string
+) {
     const user = await getAuthenticatedUserForAction();
     if (!user) throw new Error("Unauthorized");
 
@@ -38,16 +48,21 @@ export async function getChatMessages(sessionId: string, jid: string) {
 
     if (!session) throw new Error("Session not found");
 
-    const messages = await ChatService.getMessages(session.id, jid, 100);
+    const { messages, hasMore } = await ChatService.getMessages(session.id, jid, limit, before);
 
-    return messages.map(msg => ({
-        ...msg,
-        timestamp: msg.timestamp.toISOString()
-    }));
+    return {
+        messages: messages.map((msg: any) => ({
+            ...msg,
+            timestamp: msg.timestamp instanceof Date
+                ? msg.timestamp.toISOString()
+                : String(msg.timestamp)
+        })),
+        hasMore
+    };
 }
 
 // Send a basic text message
-export async function sendChatMessage(sessionId: string, jid: string, text: string) {
+export async function sendChatMessage(sessionId: string, jid: string, text: string, quotedMessageId?: string) {
     const user = await getAuthenticatedUserForAction();
     if (!user) throw new Error("Unauthorized");
 
@@ -55,7 +70,7 @@ export async function sendChatMessage(sessionId: string, jid: string, text: stri
     if (!canAccess) throw new Error("Forbidden");
 
     try {
-        await ChatService.sendTextMessage(sessionId, jid, { text });
+        await ChatService.sendTextMessage(sessionId, jid, { text }, undefined, quotedMessageId);
         return { success: true };
     } catch (error: any) {
         throw new Error(`Failed to send message: ${error.message}`);
@@ -82,7 +97,7 @@ export async function sendMediaMessage(formData: FormData) {
 
     try {
         const buffer = Buffer.from(await file.arrayBuffer());
-        
+
         await ChatService.sendMediaMessage(
             sessionId,
             jid,

@@ -1,3 +1,51 @@
+## [v1.6.0] - 2026-06-23
+
+### Added
+- **Inbox Page** (`/dashboard/inbox`): Dedicated user notifications reader with filters (All/Unread/Read), mark as read, delete, and click-to-action navigation.
+- **Reply System**: Chat messages can now be replied to — reply bar shows preview of original message, quoted reply sent via Baileys `contextInfo`.
+- **Right-Click Context Menu**: On message bubbles — Reply, Copy, Delete, and Info actions. On chat list items — Open Chat and Copy JID.
+- **Label Badges in Chat List**: Colored dots displayed next to chat names showing assigned labels, always visible without hover.
+- **Label Assignment from Chat List**: Hover label button on each chat row opens popover to toggle label assignments inline.
+- **Label API by JID**: `GET /api/labels/[sessionId]/chats?jid=` endpoint to fetch labels assigned to a specific chat.
+- **Keyboard Shortcuts**: In Chat Window — `Esc` to cancel reply, `?` to show shortcuts help.
+- **Broadcast History Persistence**: Broadcast logs saved to DB with `BroadcastLog` and `BroadcastRecipient` tables. History tab with detail modal per broadcast.
+- **SEO Optimization**: Full metadata (OG, Twitter, keywords, canonical), conditional `robots.ts`/`sitemap.ts` based on `NEXT_PUBLIC_ALLOW_INDEXING` env, JSON-LD-ready.
+- **Notifications API `?jid=` support**: Fetch labels assigned to a specific chat JID.
+
+### Changed
+- **RAM Optimization — Session Reconnect Limit**: Max 3 reconnect attempts per session. After exceeding, session auto-stops and removes itself from memory manager.
+- **Session Default STOPPED**: Newly created sessions no longer auto-init socket. Status set to `STOPPED`; user must click Start to connect.
+- **Load Sessions Skip Idle**: `loadSessions()` skips restoring sessions without auth credentials (never connected before).
+- **Memory Cleanup**: Instances removed from manager Map on LOGGED_OUT, STOPPED, or max-reconnect failure. No orphan instances in memory.
+- **Anti-Delete Fix**: Session config `antiDelete` now correctly preserves original message content instead of always replacing with deleted marker.
+- **Performance — Docs Page**: Replaced heavy `react-syntax-highlighter` (200KB+ bundle) with lightweight `<pre>` blocks + copy button.
+- **Performance — Chat List**: Virtuoso virtual scrolling, lazy media loading, IntersectionObserver for images/videos.
+- **UI — Reply Button Position**: Own messages: reply button on left. Others' messages: reply button on right.
+- **UI — English Only**: All remaining Indonesian strings translated to English across broadcast, labels, and bot-settings pages.
+- **Api Docs**: Endpoint count bumped from 64 to 68, new broadcast history endpoints documented.
+- **Unread Dot Style**: Notification indicator now uses proper `h-2 w-2` with `ring` for modern badge look.
+
+### Fixed
+- **Session Settings 405 Error**: Frontend was sending POST to a PATCH-only route; fixed method mismatch.
+- **Label "No chats assigned" Bug**: Wrong API endpoint `/list/{id}` → fixed to `/chats?labelId={id}`.
+- **Reply Bar Overflow**: Long replied messages no longer push the close (X) button out of view — added `overflow-hidden` and `w-full truncate`.
+- **Notification Truncation**: Removed `line-clamp-2` from notification messages — full text now visible in inbox and popover.
+- **Native `confirm()` Replaced**: Native browser confirm in ChatWindow delete replaced with shadcn `AlertDialog`.
+- **Duplicate `canAccess` Declaration**: Fixed TypeScript build error in labels chats route.
+- **Table Overflow on Mobile**: Changed `whitespace-nowrap` to `whitespace-normal` for responsive table cells.
+- **Settings Route Mismatch**: Frontend `POST` → `PATCH` for bot settings save.
+
+### Performance
+- **Bundle Size**: Removed `react-syntax-highlighter` dependency — docs page loads significantly faster.
+- **Session Memory**: Idle/disconnected sessions no longer hold socket instances in RAM.
+- **Log Spam**: Infinite reconnect loop stopped — no more log flooding from disconnected sessions.
+
+### Database
+- **New Models**: `BroadcastLog`, `BroadcastRecipient` — persistent broadcast history with cascade delete.
+- **Index**: Added `@@index([sessionId, remoteJid, timestamp])` on Message table for GROUP BY query performance.
+
+---
+
 ## [v1.5.5] - 2026-06-03
 
 ### Added

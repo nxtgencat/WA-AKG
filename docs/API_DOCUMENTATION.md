@@ -2160,7 +2160,102 @@ curl -X POST "http://localhost:3000/api/messages/session-01/broadcast" \
 
 ---
 
-### \[POST\] /messages/{sessionId}/{jid}/poll
+### [GET] /messages/{sessionId}/broadcast/history
+
+**Get broadcast history**
+
+Retrieve list of past broadcasts with status, sent/failed counts.
+
+#### Parameters
+
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `sessionId` | string | Yes | Session ID (path) |
+| `limit` | integer | No | Max results (default: 20, max: 50) |
+| `offset` | integer | No | Pagination offset |
+
+**Response Fields (`200`):**
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `status` | boolean | Success indicator |
+| `data` | array | List of BroadcastLog objects |
+| `total` | integer | Total count |
+| `limit` | integer | Requested limit |
+| `offset` | integer | Requested offset |
+
+**BroadcastLog object:**
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | string | Broadcast log ID |
+| `message` | string | Broadcast message content |
+| `total` | integer | Total recipients |
+| `sent` | integer | Successfully sent count |
+| `failed` | integer | Failed count |
+| `status` | string | `running`, `completed`, `cancelled` |
+| `startedAt` | datetime | Start time |
+| `completedAt` | datetime | Completion time (nullable) |
+
+**Status Codes:**
+
+| Code | Description |
+| :--- | :--- |
+| `200` | Broadcast history retrieved |
+| `401` | Unauthorized |
+| `403` | Forbidden |
+
+#### cURL Example
+
+```bash
+curl -X GET "http://localhost:3000/api/messages/session-01/broadcast/history" \
+  -H "X-API-Key: your-api-key"
+```
+
+---
+
+### [GET] /messages/{sessionId}/broadcast/history/{logId}
+
+**Get broadcast detail**
+
+Retrieve full detail of a specific broadcast including per-recipient status.
+
+#### Parameters
+
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `sessionId` | string | Yes | Session ID (path) |
+| `logId` | string | Yes | Broadcast log ID (path) |
+
+**BroadcastRecipient object:**
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | string | Recipient record ID |
+| `jid` | string | WhatsApp JID |
+| `status` | string | `pending`, `sent`, `failed` |
+| `error` | string | Error message if failed (nullable) |
+| `sentAt` | datetime | Sent timestamp (nullable) |
+
+**Status Codes:**
+
+| Code | Description |
+| :--- | :--- |
+| `200` | Broadcast detail retrieved |
+| `401` | Unauthorized |
+| `403` | Forbidden |
+| `404` | Broadcast not found |
+
+#### cURL Example
+
+```bash
+curl -X GET "http://localhost:3000/api/messages/session-01/broadcast/history/clxabc123" \
+  -H "X-API-Key: your-api-key"
+```
+
+---
+
+### [POST] /messages/{sessionId}/{jid}/poll
 
 **Send poll message**
 

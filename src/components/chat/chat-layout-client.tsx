@@ -26,16 +26,13 @@ export function ChatLayoutClient({ sessionId }: ChatLayoutClientProps) {
     };
 
     return (
-        <div className="flex h-full bg-background rounded-xl border border-border/40 shadow-sm overflow-hidden relative">
+        // Outer: flex row, full height, overflow hidden — containment chain root
+        <div className="flex h-full bg-background rounded-xl border border-border/40 shadow-sm overflow-hidden min-h-0">
             {/* Chat List Panel */}
-            <div
-                className={`
-                    w-full md:w-80 lg:w-[340px] border-r border-border/30 h-full overflow-hidden flex-shrink-0
-                    absolute md:static inset-0 z-20 bg-background
-                    transition-transform duration-300 ease-in-out
-                    ${selectedChat ? "-translate-x-full md:translate-x-0" : "translate-x-0"}
-                `}
+            <div className={`w-full md:w-80 lg:w-[340px] border-r border-border/30 overflow-hidden shrink-0 flex flex-col
+                ${selectedChat ? "hidden md:flex" : "flex"}`}
             >
+                {/* Inner flex-col: header fixed + virtuoso fills rest */}
                 <ChatList
                     sessionId={sessionId}
                     onSelectChat={handleSelectChat}
@@ -44,13 +41,8 @@ export function ChatLayoutClient({ sessionId }: ChatLayoutClientProps) {
             </div>
 
             {/* Chat Window Panel */}
-            <div
-                className={`
-                    flex-1 h-full overflow-hidden
-                    absolute md:static inset-0 z-10 bg-background
-                    transition-transform duration-300 ease-in-out
-                    ${selectedChat ? "translate-x-0 z-30" : "translate-x-full md:translate-x-0"}
-                `}
+            <div className={`flex-1 overflow-hidden flex flex-col min-w-0
+                ${!selectedChat ? "hidden md:flex" : "flex"}`}
             >
                 {selectedChat ? (
                     <ChatWindow
@@ -60,16 +52,13 @@ export function ChatLayoutClient({ sessionId }: ChatLayoutClientProps) {
                         onBack={handleBack}
                     />
                 ) : (
-                    <div className="flex h-full items-center justify-center">
+                    <div className="flex-1 flex items-center justify-center min-w-0 min-h-0">
                         <div className="text-center p-6">
                             <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
                                 <MessageCircle className="h-8 w-8 text-muted-foreground/40" />
                             </div>
-                            <p className="text-sm text-muted-foreground hidden md:block">
+                            <p className="text-sm text-muted-foreground">
                                 Select a chat to start messaging
-                            </p>
-                            <p className="text-sm text-muted-foreground md:hidden">
-                                Select a chat from the list
                             </p>
                         </div>
                     </div>

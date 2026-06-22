@@ -63,7 +63,7 @@ export const bindSessionStore = (sock: WASocket, sessionId: string, io: Server |
                     await sock.readMessages([msg.key]);
                 }
 
-                const savedMessage = await processAndSaveMessage(msg, dbSessionId, sessionId, type === 'notify', sock, config);
+                const savedMessage = await processAndSaveMessage(msg, dbSessionId, sessionId, type === 'notify', sock, config, io);
                 if (savedMessage) {
                     processedMessages.push(savedMessage);
                 }
@@ -106,7 +106,7 @@ export const bindSessionStore = (sock: WASocket, sessionId: string, io: Server |
             logger.info("Store", `Syncing ${messages.length} historical messages...`);
             for (const msg of messages) {
                 try {
-                    await processAndSaveMessage(msg, dbSessionId, sessionId, false, sock);
+                    await processAndSaveMessage(msg, dbSessionId, sessionId, false, sock, undefined, io);
                 } catch (error) {
                     logger.error("Store", "Error saving historical message", error);
                 }
@@ -274,7 +274,8 @@ async function processAndSaveMessage(
     sessionId: string,
     triggerWebhook: boolean,
     sock?: WASocket,
-    config?: any
+    config?: any,
+    io?: Server | null
 ) {
     const keyId = msg.key.id;
     const remoteJid = msg.key.remoteJid;
@@ -327,10 +328,44 @@ async function processAndSaveMessage(
 
         // Message Revoke/Deleted (Type 0)
         if (pMessage?.type === 0 && targetKeyId) {
-            await prisma.message.updateMany({
-                where: { sessionId: dbSessionId, keyId: targetKeyId },
-                data: { content: "[This message was deleted]", status: "FAILED" }
-            });
+            // Check anti-delete config
+            let antiDeleteEnabled = false;
+            try {
+                const s = await prisma.session.findUnique({
+                    where: { sessionId },
+                    select: { config: true }
+                });
+                antiDeleteEnabled = !!(s?.config as any)?.antiDelete;
+            } catch {}
+
+            if (antiDeleteEnabled) {
+                // Anti-delete: read original, keep content, append marker
+                const orig = await prisma.message.findFirst({
+                    where: { sessionId: dbSessionId, keyId: targetKeyId },
+                    select: { content: true }
+                });
+                const preserved = (orig?.content || "") + "\n\n🛡️ [Deleted by sender — preserved]";
+                await prisma.message.updateMany({
+                    where: { sessionId: dbSessionId, keyId: targetKeyId },
+                    data: { content: preserved }
+                });
+                // Re-fetch & re-emit so frontend updates
+                const updated = await prisma.message.findFirst({
+                    where: { sessionId: dbSessionId, keyId: targetKeyId }
+                });
+                if (updated) {
+                    io?.to(sessionId).emit("message.update", [{
+                        ...updated,
+                        timestamp: updated.timestamp instanceof Date ? updated.timestamp.toISOString() : updated.timestamp
+                    }]);
+                }
+            } else {
+                // Normal: mark as deleted
+                await prisma.message.updateMany({
+                    where: { sessionId: dbSessionId, keyId: targetKeyId },
+                    data: { content: "[This message was deleted]", status: "FAILED" }
+                });
+            }
 
             // Trigger Webhook
             if (triggerWebhook) {

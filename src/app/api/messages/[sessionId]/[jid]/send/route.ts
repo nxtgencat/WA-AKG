@@ -16,7 +16,7 @@ export async function POST(
         const jid = decodeURIComponent(rawJid);
         
         const body = await request.json();
-        const { message, mentions } = body;
+        const { message, mentions, quotedMessageId } = body;
 
         if (!message) {
             return NextResponse.json({ status: false, message: "message is required", error: "message is required" }, { status: 400 });
@@ -29,7 +29,7 @@ export async function POST(
         }
 
         // Send Message using ChatService
-        const result = await ChatService.sendTextMessage(sessionId, jid, message, mentions);
+        const result = await ChatService.sendTextMessage(sessionId, jid, message, mentions, quotedMessageId);
 
         return NextResponse.json({ status: true, message: "Message sent successfully", data: result });
     } catch (error: any) {
