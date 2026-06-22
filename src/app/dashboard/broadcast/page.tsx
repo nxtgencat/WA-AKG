@@ -84,9 +84,9 @@ export default function BroadcastPage() {
                 // Refresh history after completion
                 fetchHistory();
                 if (data.failed === 0) {
-                    toast.success(`Broadcast selesai! ${data.sent} pesan terkirim.`);
+                    toast.success(`Broadcast complete! ${data.sent} sent.`);
                 } else {
-                    toast.warning(`Broadcast selesai. ${data.sent} terkirim, ${data.failed} gagal.`);
+                    toast.warning(`Broadcast complete. ${data.sent} sent, ${data.failed} failed.`);
                 }
             }
         };
@@ -168,7 +168,7 @@ export default function BroadcastPage() {
             const data = await res.json();
 
             if (res.ok) {
-                toast.info(`Broadcast dimulai untuk ${recipients.length} penerima...`);
+                toast.info(`Broadcast started for ${recipients.length} recipients...`);
             } else {
                 toast.error(data.message || "Failed to start broadcast");
                 setLoading(false);
@@ -201,7 +201,7 @@ export default function BroadcastPage() {
             <div className="space-y-6">
                 <div>
                     <h2 className="text-xl sm:text-3xl font-bold tracking-tight">Broadcast / Blast</h2>
-                    <p className="text-muted-foreground text-sm mt-1">Kirim pesan massal ke banyak penerima sekaligus.</p>
+                    <p className="text-muted-foreground text-sm mt-1">Send bulk messages to multiple recipients at once.</p>
                 </div>
 
                 {/* Tabs */}
@@ -380,7 +380,7 @@ export default function BroadcastPage() {
                                 <History className="h-5 w-5" />
                                 Broadcast History
                             </CardTitle>
-                            <CardDescription>Riwayat broadcast yang pernah dikirim, tersimpan permanen.</CardDescription>
+                            <CardDescription>History of sent broadcasts, stored permanently.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             {historyLoading ? (
