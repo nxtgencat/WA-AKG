@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { normalizeJid } from "@/lib/jid-utils";
 import { waManager } from "@/modules/whatsapp/manager";
 import Sticker from "wa-sticker-formatter";
 
