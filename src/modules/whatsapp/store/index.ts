@@ -476,6 +476,22 @@ async function processAndSaveMessage(
         logger.error("Store", "Error downloading media in store", e);
     }
 
+    // Extract contextInfo (quoted message ID)
+    let quoteId: string | null = null;
+    if (msg.message) {
+        const msgObj = msg.message as any;
+        for (const key of Object.keys(msgObj)) {
+            const inner = msgObj[key];
+            if (inner && typeof inner === 'object' && inner !== null && 'contextInfo' in inner) {
+                const contextInfo = (inner as any).contextInfo;
+                if (contextInfo?.stanzaId) {
+                    quoteId = contextInfo.stanzaId;
+                    break;
+                }
+            }
+        }
+    }
+
     try {
         const newMessage = await prisma.message.create({
             data: {
@@ -489,7 +505,8 @@ async function processAndSaveMessage(
                 content: text,
                 mediaUrl: fileUrl, // Save Media URL
                 status: fromMe ? "SENT" : "PENDING",
-                timestamp
+                timestamp,
+                quoteId
             }
         });
         

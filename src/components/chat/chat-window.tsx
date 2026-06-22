@@ -31,6 +31,14 @@ interface Message {
     pushName?: string;
     mediaUrl?: string;
     remoteJid?: string;
+    quoteId?: string | null;
+    quoted?: {
+        keyId: string;
+        content: string | null;
+        fromMe: boolean;
+        senderJid: string | null;
+        pushName: string | null;
+    } | null;
 }
 
 interface ChatWindowProps {
@@ -419,7 +427,7 @@ export function ChatWindow({ sessionId, jid, name, onBack }: ChatWindowProps) {
                     {messages.map((msg, idx) => {
                         const showDate = idx === 0 || getDateLabel(msg.timestamp) !== getDateLabel(messages[idx - 1].timestamp);
                         return (
-                            <div key={msg.keyId}>
+                            <div key={msg.keyId} id={`msg-${msg.keyId}`}>
                                 {showDate && (
                                     <div className="flex justify-center my-3">
                                         <span className="text-[10px] font-medium text-muted-foreground bg-background/80 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm border border-border/30">
@@ -442,6 +450,36 @@ export function ChatWindow({ sessionId, jid, name, onBack }: ChatWindowProps) {
                                     )} onContextMenu={(e) => handleContextMenu(e, msg)}>
                                         {!msg.fromMe && jid.endsWith("@g.us") && msg.pushName && (
                                             <span className="text-[10px] font-semibold text-primary block mb-0.5">{msg.pushName}</span>
+                                        )}
+                                        {msg.quoted && (
+                                            <div 
+                                                className={cn(
+                                                    "mb-1.5 px-2 py-1 rounded-lg border-l-4 text-xs select-none cursor-pointer text-left bg-muted/40",
+                                                    msg.fromMe 
+                                                        ? "border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground/90 hover:bg-primary-foreground/15" 
+                                                        : "border-primary bg-muted text-muted-foreground hover:bg-muted/60"
+                                                )}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const target = document.getElementById(`msg-${msg.quoted?.keyId}`);
+                                                    if (target) {
+                                                        target.scrollIntoView({ behavior: "smooth", block: "center" });
+                                                        target.classList.add("bg-primary/10", "transition-colors", "duration-500");
+                                                        setTimeout(() => {
+                                                            target.classList.remove("bg-primary/10");
+                                                        }, 1500);
+                                                    } else {
+                                                        toast.info("Original message not loaded in view");
+                                                    }
+                                                }}
+                                            >
+                                                <span className="font-semibold block text-[10px]">
+                                                    {msg.quoted.fromMe ? "You" : (msg.quoted.pushName || msg.quoted.senderJid?.split('@')[0] || "Contact")}
+                                                </span>
+                                                <span className="line-clamp-2 block break-all text-xs">
+                                                    {msg.quoted.content || "Media"}
+                                                </span>
+                                            </div>
                                         )}
                                         {/* IMAGE */}
                                         {msg.type === 'IMAGE' && msg.mediaUrl && (

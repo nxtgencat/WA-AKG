@@ -147,9 +147,45 @@ export class ChatService {
         const hasMore = messages.length > limit;
         if (hasMore) messages.pop();
 
+        // Fetch quoted messages
+        const quoteIds = messages.map(m => m.quoteId).filter((id): id is string => !!id);
+        const quotedMessagesMap = new Map<string, { content: string | null; fromMe: boolean; senderJid: string | null; pushName: string | null }>();
+        if (quoteIds.length > 0) {
+            try {
+                const quotedMsgs = await prisma.message.findMany({
+                    where: { sessionId: dbSessionId, keyId: { in: quoteIds } },
+                    select: { keyId: true, content: true, fromMe: true, senderJid: true, pushName: true }
+                });
+                quotedMsgs.forEach(qm => {
+                    quotedMessagesMap.set(qm.keyId, {
+                        content: qm.content,
+                        fromMe: qm.fromMe,
+                        senderJid: qm.senderJid,
+                        pushName: qm.pushName
+                    });
+                });
+            } catch (e) {
+                console.error("Failed to batch load quoted messages:", e);
+            }
+        }
+
+        const messagesWithQuote = messages.map((m: any) => {
+            const quoted = m.quoteId ? quotedMessagesMap.get(m.quoteId) : undefined;
+            return {
+                ...m,
+                quoted: quoted ? {
+                    keyId: m.quoteId,
+                    content: quoted.content,
+                    fromMe: quoted.fromMe,
+                    senderJid: quoted.senderJid,
+                    pushName: quoted.pushName
+                } : null
+            };
+        });
+
         // Return chronological order (oldest first)
         return {
-            messages: messages.reverse(),
+            messages: messagesWithQuote.reverse(),
             hasMore
         };
     }
@@ -161,19 +197,34 @@ export class ChatService {
         }
 
         // Handle quoted/reply message
+        let quotedOption: any = undefined;
         if (quotedMessageId) {
             try {
                 const dbSession = await prisma.session.findUnique({ where: { sessionId }, select: { id: true } });
                 if (dbSession) {
                     const quotedMsg = await prisma.message.findFirst({
                         where: { sessionId: dbSession.id, keyId: quotedMessageId },
-                        select: { keyId: true, remoteJid: true, fromMe: true, content: true, timestamp: true }
+                        select: { keyId: true, remoteJid: true, fromMe: true, content: true, senderJid: true }
                     });
-                    if (quotedMsg && typeof messagePayload === 'object' && !messagePayload.quoted) {
-                        (messagePayload as any).contextInfo = {
-                            stanzaId: quotedMsg.keyId,
-                            participant: quotedMsg.fromMe ? undefined : quotedMsg.remoteJid,
-                            quotedMessage: { conversation: quotedMsg.content || "" }
+                    if (quotedMsg) {
+                        const participant = quotedMsg.fromMe 
+                            ? instance.socket.user?.id 
+                            : (quotedMsg.senderJid || quotedMsg.remoteJid);
+                        
+                        const cleanParticipant = participant 
+                            ? participant.split(':')[0] + (participant.includes('@') ? '@' + participant.split('@')[1] : '') 
+                            : undefined;
+
+                        quotedOption = {
+                            key: {
+                                remoteJid: quotedMsg.remoteJid,
+                                fromMe: quotedMsg.fromMe,
+                                id: quotedMsg.keyId,
+                                participant: cleanParticipant
+                            },
+                            message: {
+                                conversation: quotedMsg.content || ""
+                            }
                         };
                     }
                 }
@@ -258,7 +309,11 @@ export class ChatService {
             msgPayload.mentions = mentions;
         }
 
-        return await instance.socket.sendMessage(jid, msgPayload, { mentions: mentions || [] } as any);
+        const options: any = { mentions: mentions || [] };
+        if (quotedOption) {
+            options.quoted = quotedOption;
+        }
+        return await instance.socket.sendMessage(jid, msgPayload, options);
     }
 
     /**
