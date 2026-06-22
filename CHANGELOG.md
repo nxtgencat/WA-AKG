@@ -40,6 +40,11 @@
 - **Chat List CPU Spike**: SQL query had no `LIMIT` — added directly with cursor pagination.
 - **Build Error**: Restored needed `normalizeJid` import in chat service.
 - **Favicon Disappeared**: Removed non-existent icon paths — Next.js auto-generates again.
+- **Chat List Scroll Render & Glitch**: Fixed list items shuffling or displaying wrong/swapped contact names on scroll by supplying stable `key={chat.jid}` to item renderers.
+- **Infinite Scroll Concurrency**: Added a `fetchingRef` lock during pagination to prevent duplicate parallel fetches and race conditions.
+- **Search Debouncing**: Separated search text input from the query state to ensure the debouncing delay is properly respected before database querying.
+- **Reply Message System**: Fixed missing message reply storage by extracting and storing `quoteId` from incoming and outgoing messages. Fixed recipient JID string parsing to prevent corrupted double domain serialization, enabling messages to be correctly received as replies.
+- **Reply Scroll & Highlight**: Added a visual quote preview block inside message bubbles and interactive scroll-to-quote with highlight transition animation on click.
 
 ### Performance
 - **Bundle Size**: Removed `react-syntax-highlighter` dependency — docs page loads significantly faster.
