@@ -207,13 +207,16 @@ export class ChatService {
                         select: { keyId: true, remoteJid: true, fromMe: true, content: true, senderJid: true }
                     });
                     if (quotedMsg) {
-                        const participant = quotedMsg.fromMe 
+                        const rawParticipant = quotedMsg.fromMe 
                             ? instance.socket.user?.id 
                             : (quotedMsg.senderJid || quotedMsg.remoteJid);
                         
-                        const cleanParticipant = participant 
-                            ? participant.split(':')[0] + (participant.includes('@') ? '@' + participant.split('@')[1] : '') 
-                            : undefined;
+                        let cleanParticipant: string | undefined = undefined;
+                        if (rawParticipant) {
+                            const [userPart, domain] = rawParticipant.split('@');
+                            const cleanUser = userPart.split(':')[0];
+                            cleanParticipant = domain ? `${cleanUser}@${domain}` : cleanUser;
+                        }
 
                         quotedOption = {
                             key: {
