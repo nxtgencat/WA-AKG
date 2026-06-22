@@ -299,7 +299,7 @@ export function ChatList({ sessionId, onSelectChat, selectedJid }: ChatListProps
         }
     }, [sessionId, searchQuery]);
 
-    useEffect(() => { setChats([]); setOffset(0); setHasMore(true); fetchChats(); }, [fetchChats]);
+    useEffect(() => { setChats([]); setHasMore(true); fetchChats(); }, [fetchChats]);
 
     useEffect(() => {
         const socket = getSocket();
