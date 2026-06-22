@@ -6,8 +6,18 @@ import Link from 'next/link';
 import { DocsClient } from './docs-client';
 
 export const metadata = {
-    title: 'Public API Documentation - WA-AKG',
-    description: 'Complete API reference for WA-AKG WhatsApp Gateway',
+    title: 'API Documentation - WA-AKG',
+    description: 'Complete API reference for WA-AKG WhatsApp Gateway. Includes endpoints for messaging, groups, contacts, media, and webhooks.',
+    openGraph: {
+        title: 'API Documentation - WA-AKG',
+        description: 'Complete API reference for WA-AKG WhatsApp Gateway.',
+        type: 'website',
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'API Documentation - WA-AKG',
+        description: 'Complete API reference for WA-AKG WhatsApp Gateway.',
+    },
 };
 
 // Interface for Nested TOC
