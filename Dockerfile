@@ -1,4 +1,5 @@
 FROM node:20-alpine AS builder
+RUN apk add --no-cache openssl ca-certificates
 WORKDIR /app
 COPY package*.json ./
 COPY patches ./patches/
