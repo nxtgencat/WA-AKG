@@ -1,0 +1,51 @@
+name: ✨ Feature Request
+description: Usulkan fitur baru untuk WA-AKG
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Ide fitur baru? Keren!** Jelaskan dengan jelas biar bisa dipertimbangkan.
+
+  - type: input
+    id: title
+    attributes:
+      label: Judul Fitur
+      description: Nama singkat fitur yang diusulkan
+      placeholder: "Auto-reply berbasis AI"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Deskripsi
+      description: Jelaskan fitur ini secara detail
+      placeholder: "Bot bisa auto-reply menggunakan LLM lokal / API OpenAI..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: usecase
+    attributes:
+      label: Use Case / Manfaat
+      description: Siapa yang diuntungkan? Kenapa penting?
+      placeholder: "Admin grup bisa mengaktifkan auto-reply cerdas tanpa setup tambahan..."
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatif
+      description: Apakah ada workaround saat ini? Sudah dicoba?
+
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Siap bantu implementasi?
+      description: Apakah kamu bersedia bikin PR untuk fitur ini?
+      options:
+        - "Tidak, cuma ide"
+        - "Ya, saya bisa bantu"
+        - "Mungkin, tergantung scope"

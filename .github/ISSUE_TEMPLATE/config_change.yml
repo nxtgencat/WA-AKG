@@ -1,0 +1,45 @@
+name: ⚙️ Config / Setup Change
+description: Request perubahan konfigurasi, environment, atau infrastruktur
+title: "[Config]: "
+labels: ["configuration", "triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Perubahan config / setup.** Pastikan jelaskan impact-nya.
+
+  - type: dropdown
+    id: config_type
+    attributes:
+      label: Tipe Konfigurasi
+      options:
+        - WhatsApp (Baileys / pairing)
+        - Database (MySQL / Prisma)
+        - Docker / Deployment
+        - Authentication (NextAuth)
+        - Environment Variables
+        - Lainnya
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Deskripsi Perubahan
+      description: Apa yang mau diubah dan kenapa
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact Analysis
+      description: Apa efeknya ke sistem? Apakah breaking change?
+      placeholder: "Mengubah DATABASE_URL akan mempengaruhi koneksi Prisma..."
+
+  - type: textarea
+    id: migration
+    attributes:
+      label: Langkah Migrasi
+      description: Kalau perlu migrasi, tulis step-by-step-nya

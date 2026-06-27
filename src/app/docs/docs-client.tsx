@@ -240,7 +240,7 @@ export function DocsClient({ content, toc }: DocsClientProps) {
                     </div>
                 </div>
 
-                <article className="prose prose-slate prose-blue max-w-none prose-headings:scroll-mt-24 prose-pre:p-0 prose-pre:bg-transparent prose-pre:border-none break-words"> {/* Added break-words */}
+                <article className="prose prose-slate prose-blue max-w-none prose-headings:scroll-mt-24 break-words"> {/* Added break-words */}
                     <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
@@ -256,13 +256,28 @@ export function DocsClient({ content, toc }: DocsClientProps) {
                                 const match = /language-(\w+)/.exec(className || '');
                                 const codeStr = String(children).replace(/\n$/, '');
                                 return !inline && match ? (
-                                    <div className="rounded-lg overflow-hidden my-6 border border-gray-200 shadow-sm">
-                                        <div className="bg-gray-100 px-4 py-2 flex items-center justify-between border-b border-gray-200">
-                                            <span className="text-xs font-mono text-gray-500 capitalize">{match[1]}</span>
-                                            <CopyButton code={codeStr} />
+                                    <div className="rounded-xl overflow-hidden my-6 border border-gray-200 shadow-sm ring-1 ring-gray-900/5 bg-gray-950">
+                                        <div className="bg-gray-50/90 px-4 py-2.5 flex items-center justify-between border-b border-gray-200">
+                                            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{match[1]}</span>
+                                            <button onClick={() => {
+                                                navigator.clipboard.writeText(codeStr).then(() => {
+                                                    const btn = document.activeElement;
+                                                    if (btn) {
+                                                        const orig = btn.innerHTML;
+                                                        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5"><polyline points="20 6 9 17 4 12"/></svg> <span class="font-medium">Copied!</span>';
+                                                        setTimeout(() => btn.innerHTML = orig, 2000);
+                                                    }
+                                                }).catch(() => {});
+                                            }} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 transition-colors cursor-pointer">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" className="h-3.5 w-3.5" aria-hidden="true">
+                                                    <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
+                                                    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+                                                </svg>
+                                                <span className="font-medium">Copy</span>
+                                            </button>
                                         </div>
-                                        <pre className="bg-gray-900 text-gray-100 text-sm leading-relaxed overflow-x-auto p-4 m-0">
-                                            <code className="text-sm font-mono">{codeStr}</code>
+                                        <pre className="text-gray-100 text-sm leading-loose overflow-x-auto p-5 m-0 selection:bg-gray-700">
+                                            <code className="font-mono">{codeStr}</code>
                                         </pre>
                                     </div>
                                 ) : (

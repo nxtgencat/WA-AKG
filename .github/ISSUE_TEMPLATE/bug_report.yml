@@ -1,0 +1,87 @@
+name: 🐛 Bug Report
+description: Laporkan bug / error di WA-AKG
+title: "[Bug]: "
+labels: ["bug", "triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Terima kasih sudah melaporkan bug.** Isi selengkap mungkin biar cepat diperbaiki.
+
+  - type: input
+    id: version
+    attributes:
+      label: Versi WA-AKG
+      description: Versi berapa yang dipakai?
+      placeholder: "1.6.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Lingkungan
+      description: Gimana cara deploy-nya?
+      options:
+        - Docker Compose
+        - Bare Metal (Node.js langsung)
+        - VPS (PM2 / systemd)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Deskripsi Bug
+      description: Jelaskan apa yang terjadi
+      placeholder: "Bot tidak merespon command /ping..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Langkah Reproduksi
+      description: Step-by-step biar bisa direproduksi
+      placeholder: |
+        1. Jalankan `npm run dev`
+        2. Scan QR code
+        3. Kirim command `/ping`
+        4. Bot tidak merespon
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Perilaku yang Diharapkan
+      description: Harusnya gimana?
+      placeholder: "Bot harusnya membalas 'Pong! 🏓'"
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log / Error
+      description: Paste error log dari terminal / Docker
+      render: shell
+
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Upload screenshot kalau membantu (drag & drop)
+
+  - type: input
+    id: node_version
+    attributes:
+      label: Node.js Version
+      description: Output dari `node -v`
+      placeholder: "v22.1.0"
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: OS & versi
+      placeholder: "Ubuntu 24.04 / Windows 11"
