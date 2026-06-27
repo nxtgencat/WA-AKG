@@ -1,40 +1,40 @@
-## 📝 Deskripsi
+## 📝 Description
 
-<!-- Jelaskan apa yang diubah dan kenapa -->
+<!-- Explain what was changed and why -->
 
-## 🔖 Tipe PR
+## 🔖 PR Type
 
-<!-- Pilih salah satu, ganti badge-nya -->
-- [ ] `feat` — Fitur baru
+<!-- Pick one -->
+- [ ] `feat` — New feature
 - [ ] `fix` — Bug fix
 - [ ] `chore` — Maintenance / dependency
-- [ ] `docs` — Dokumentasi
-- [ ] `refactor` — Refactor kode
+- [ ] `docs` — Documentation
+- [ ] `refactor` — Code refactor
 - [ ] `breaking` — ⚠️ Breaking change
 
-## 🔗 Issue Terkait
+## 🔗 Related Issue
 
 <!-- Format: Closes #123 -->
 
 ## 📸 Screenshot / Demo
 
-<!-- Upload screenshot / GIF kalau ada perubahan UI -->
+<!-- Upload screenshot / GIF if there are UI changes -->
 
 ## ✅ Checklist
 
-- [ ] Sudah di-test di local (`npm run dev`)
-- [ ] `npm run build` sukses tanpa error
-- [ ] Linter bersih (`npx eslint .`)
-- [ ] Documentation updated (jika perlu)
-- [ ] Tidak ada credential / secret yang bocor
+- [ ] Tested locally (`npm run dev`)
+- [ ] `npm run build` succeeds without errors
+- [ ] Linter is clean (`npx eslint .`)
+- [ ] Documentation updated (if needed)
+- [ ] No credentials or secrets exposed
 
-## 🧪 Cara Testing
+## 🧪 Testing Steps
 
-<!-- Step-by-step buat reviewer repro perubahan ini -->
+<!-- Step-by-step for the reviewer to reproduce this change -->
 1. 
 2. 
 3. 
 
 ## ⚠️ Breaking Changes
 
-<!-- Kalau ada breaking change, jelaskan dan beri solusi migrasi -->
+<!-- If there are breaking changes, explain and provide migration steps -->

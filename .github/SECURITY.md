@@ -1,38 +1,38 @@
 # Security Policy — WA-AKG
 
-## Versi yang Didukung
+## Supported Versions
 
-| Versi | Status         |
-|-------|----------------|
-| 1.6.x | ✅ Didukung    |
-| < 1.6 | ❌ Tidak didukung |
+| Version | Status          |
+|---------|-----------------|
+| 1.6.x   | ✅ Supported    |
+| < 1.6   | ❌ Unsupported  |
 
-## Melaporkan Vulnerability
+## Reporting a Vulnerability
 
-**JANGAN buka public issue untuk vulnerability.**
+**DO NOT open a public issue for vulnerabilities.**
 
-Laporkan melalui:
+Report via:
 
-1. **GitHub Security Advisory** — Buka tab **Security** > **Report a vulnerability** di repo ini (direkomendasikan)
-2. **Email** — Kirim detail ke email yang tertera di profil GitHub maintainer
+1. **GitHub Security Advisory** — Go to **Security** > **Report a vulnerability** in this repo (recommended)
+2. **Email** — Send details to the email listed on the maintainer's GitHub profile
 
 ## Response Timeline
 
-| Tahap           | Target     |
-|-----------------|------------|
-| Acknowledgment  | < 48 jam   |
-| Investigation   | < 3 hari   |
-| Patch released  | < 7 hari   |
-| Disclosure      | Setelah patch dirilis & pengguna update |
+| Stage            | Target       |
+|------------------|--------------|
+| Acknowledgment   | < 48 hours   |
+| Investigation    | < 3 days     |
+| Patch released   | < 7 days     |
+| Disclosure       | After patch is released & users have updated |
 
 ## Scope
 
-- Vulnerability di kode WA-AKG (Next.js, Baileys integration, API)
-- Dependency dengan CVE kritis
-- Credential leak atau exposure
+- Vulnerabilities in WA-AKG code (Next.js, Baileys integration, API)
+- Dependencies with critical CVEs
+- Credential leaks or exposure
 
 ## Out of Scope
 
-- Vulnerability di dependency upstream (tetap boleh dilaporkan, prioritas rendah)
+- Vulnerabilities in upstream dependencies (can still be reported, low priority)
 - Social engineering / phishing
-- DOS karena konfigurasi user sendiri
+- DOS caused by user configuration

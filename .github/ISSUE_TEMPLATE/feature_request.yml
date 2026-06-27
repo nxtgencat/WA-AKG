@@ -1,5 +1,5 @@
 name: ✨ Feature Request
-description: Usulkan fitur baru untuk WA-AKG
+description: Propose a new feature for WA-AKG
 title: "[Feature]: "
 labels: ["enhancement", "triage"]
 assignees: []
@@ -7,45 +7,45 @@ body:
   - type: markdown
     attributes:
       value: |
-        **Ide fitur baru? Keren!** Jelaskan dengan jelas biar bisa dipertimbangkan.
+        **Got a feature idea? Awesome!** Explain it clearly so it can be considered.
 
   - type: input
     id: title
     attributes:
-      label: Judul Fitur
-      description: Nama singkat fitur yang diusulkan
-      placeholder: "Auto-reply berbasis AI"
+      label: Feature Title
+      description: A short name for the proposed feature
+      placeholder: "AI-powered auto-reply"
     validations:
       required: true
 
   - type: textarea
     id: description
     attributes:
-      label: Deskripsi
-      description: Jelaskan fitur ini secara detail
-      placeholder: "Bot bisa auto-reply menggunakan LLM lokal / API OpenAI..."
+      label: Description
+      description: Describe the feature in detail
+      placeholder: "Bot can auto-reply using local LLM / OpenAI API..."
     validations:
       required: true
 
   - type: textarea
     id: usecase
     attributes:
-      label: Use Case / Manfaat
-      description: Siapa yang diuntungkan? Kenapa penting?
-      placeholder: "Admin grup bisa mengaktifkan auto-reply cerdas tanpa setup tambahan..."
+      label: Use Case / Benefits
+      description: Who benefits? Why is it important?
+      placeholder: "Group admins can enable smart auto-replies without additional setup..."
 
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatif
-      description: Apakah ada workaround saat ini? Sudah dicoba?
+      label: Alternatives
+      description: Are there any current workarounds? Have you tried any?
 
   - type: dropdown
     id: contribute
     attributes:
-      label: Siap bantu implementasi?
-      description: Apakah kamu bersedia bikin PR untuk fitur ini?
+      label: Willing to help implement?
+      description: Are you open to opening a PR for this feature?
       options:
-        - "Tidak, cuma ide"
-        - "Ya, saya bisa bantu"
-        - "Mungkin, tergantung scope"
+        - "No, just an idea"
+        - "Yes, I can help"
+        - "Maybe, depends on scope"

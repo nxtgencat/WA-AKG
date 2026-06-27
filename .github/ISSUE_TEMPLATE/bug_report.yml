@@ -1,5 +1,5 @@
 name: 🐛 Bug Report
-description: Laporkan bug / error di WA-AKG
+description: Report a bug or error in WA-AKG
 title: "[Bug]: "
 labels: ["bug", "triage"]
 assignees: []
@@ -7,13 +7,13 @@ body:
   - type: markdown
     attributes:
       value: |
-        **Terima kasih sudah melaporkan bug.** Isi selengkap mungkin biar cepat diperbaiki.
+        **Thanks for reporting a bug.** Fill in as much detail as possible so we can fix it fast.
 
   - type: input
     id: version
     attributes:
-      label: Versi WA-AKG
-      description: Versi berapa yang dipakai?
+      label: WA-AKG Version
+      description: Which version are you using?
       placeholder: "1.6.1"
     validations:
       required: true
@@ -21,11 +21,11 @@ body:
   - type: dropdown
     id: environment
     attributes:
-      label: Lingkungan
-      description: Gimana cara deploy-nya?
+      label: Environment
+      description: How is it deployed?
       options:
         - Docker Compose
-        - Bare Metal (Node.js langsung)
+        - Bare Metal (Node.js directly)
         - VPS (PM2 / systemd)
     validations:
       required: true
@@ -33,55 +33,55 @@ body:
   - type: textarea
     id: description
     attributes:
-      label: Deskripsi Bug
-      description: Jelaskan apa yang terjadi
-      placeholder: "Bot tidak merespon command /ping..."
+      label: Bug Description
+      description: Explain what happened
+      placeholder: "Bot does not respond to /ping command..."
     validations:
       required: true
 
   - type: textarea
     id: steps
     attributes:
-      label: Langkah Reproduksi
-      description: Step-by-step biar bisa direproduksi
+      label: Steps to Reproduce
+      description: Step-by-step so it can be reproduced
       placeholder: |
-        1. Jalankan `npm run dev`
+        1. Run `npm run dev`
         2. Scan QR code
-        3. Kirim command `/ping`
-        4. Bot tidak merespon
+        3. Send `/ping` command
+        4. Bot does not respond
     validations:
       required: true
 
   - type: textarea
     id: expected
     attributes:
-      label: Perilaku yang Diharapkan
-      description: Harusnya gimana?
-      placeholder: "Bot harusnya membalas 'Pong! 🏓'"
+      label: Expected Behavior
+      description: What should have happened?
+      placeholder: "Bot should reply 'Pong! 🏓'"
 
   - type: textarea
     id: logs
     attributes:
-      label: Log / Error
-      description: Paste error log dari terminal / Docker
+      label: Logs / Error
+      description: Paste error logs from terminal / Docker
       render: shell
 
   - type: textarea
     id: screenshot
     attributes:
       label: Screenshot
-      description: Upload screenshot kalau membantu (drag & drop)
+      description: Upload a screenshot if it helps (drag & drop)
 
   - type: input
     id: node_version
     attributes:
       label: Node.js Version
-      description: Output dari `node -v`
+      description: Output of `node -v`
       placeholder: "v22.1.0"
 
   - type: input
     id: os
     attributes:
       label: Operating System
-      description: OS & versi
+      description: OS & version
       placeholder: "Ubuntu 24.04 / Windows 11"

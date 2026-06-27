@@ -1,61 +1,61 @@
-# Kontribusi ke WA-AKG
+# Contributing to WA-AKG
 
-Terima kasih tertarik kontribusi! 🎉
+Thanks for your interest in contributing! 🎉
 
-## Setup Development
+## Development Setup
 
 ```bash
 git clone https://github.com/mrifqidaffaaditya/WA-AKG.git
 cd WA-AKG
 npm install
 cp .env.example .env
-# Edit .env sesuai environment kamu
+# Edit .env to match your environment
 npm run dev
 ```
 
-Butuh: **Node.js 22+**, **npm 10+**, **MySQL 8.0**
+Requirements: **Node.js 22+**, **npm 10+**, **MySQL 8.0**
 
-Kalau pakai Docker:
+Using Docker:
 ```bash
 docker compose up -d
 ```
 
 ## Branch & Commit Convention
 
-| Branch Prefix | Tujuan                    |
+| Branch Prefix | Purpose                   |
 |---------------|---------------------------|
-| `feat/`       | Fitur baru                |
+| `feat/`       | New feature               |
 | `fix/`        | Bug fix                   |
 | `chore/`      | Maintenance / dependency  |
-| `docs/`       | Dokumentasi               |
+| `docs/`       | Documentation             |
 
-**Commit message** pakai format:
+**Commit messages** use this format:
 ```
-type: deskripsi singkat
+type: short description
 
-feat: tambah auto-reply AI
-fix: perbaiki pairing QR code
-chore: update baileys ke 7.0.0
+feat: add AI auto-reply
+fix: patch QR code pairing
+chore: update baileys to 7.0.0
 ```
 
-## Proses Pull Request
+## Pull Request Process
 
-1. Fork repo & bikin branch dari `dev`
-2. Implement perubahan + test
-3. Pastikan `npm run build` sukses
-4. Buka PR ke branch `dev`
-5. Isi PR template dengan lengkap
-6. Review oleh maintainer
+1. Fork the repo & create a branch from `dev`
+2. Implement changes + test
+3. Ensure `npm run build` succeeds
+4. Open a PR to the `dev` branch
+5. Fill out the PR template completely
+6. Reviewed by a maintainer
 
 ## Code Style
 
 - TypeScript strict mode
-- ESLint config bawaan (`eslint.json`)
-- TailwindCSS utility-first, hindari custom CSS kecuali perlu
-- Nama variabel & fungsi pakai camelCase
-- Komponen React pakai PascalCase
+- ESLint default config
+- TailwindCSS utility-first — avoid custom CSS unless necessary
+- camelCase for variables and functions
+- PascalCase for React components
 
-## Butuh Bantuan?
+## Need Help?
 
-- Issue dengan label `good first issue` cocok buat pemula
+- Issues labeled `good first issue` are great for beginners
 - Join Telegram: https://t.me/aikeigroup
