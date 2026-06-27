@@ -1,3 +1,10 @@
+## [v1.6.1] - 2026-06-27
+
+### Fixed
+- **Webhook not fired for sent messages (#57)**: Explicit webhook dispatch added after `sendMessage()` in both `ChatService.sendTextMessage()` and `ChatService.sendMediaMessage()`. Also added to all API message routes (contact, location, poll, reply, sticker). No longer relies on fragile Baileys `messages.upsert` event.
+- **Receiver info in webhook payload (#58)**: Added explicit `receiver` field to `message.sent` webhook for clarity.
+- **Webhook empty key fields**: Fixed Baileys `WAMessage` vs `MessageKey` type mismatch — now correctly extracts `MessageKey` from returned `WAMessage` before passing to webhook.
+
 ## [v1.6.0] - 2026-06-23
 
 ### Added
