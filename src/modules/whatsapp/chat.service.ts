@@ -323,7 +323,7 @@ export class ChatService {
         // Fire webhook for sent message (non-blocking)
         try {
             const webhookMsg: any = {
-                key: sendResult,
+                key: sendResult?.key || sendResult || {},
                 message: {
                     conversation: typeof msgPayload.text === 'string' ? msgPayload.text : (msgPayload.caption || "")
                 },
@@ -411,7 +411,7 @@ export class ChatService {
         // Fire webhook for sent media message (non-blocking)
         try {
             const webhookMsg: any = {
-                key: sendResult,
+                key: sendResult?.key || sendResult || {},
                 message: {
                     conversation: caption || ""
                 },
