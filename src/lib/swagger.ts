@@ -12,7 +12,7 @@ export const getApiDocs = () => {
                 description: `
 # WhatsApp AI Gateway - Complete API Reference
 
-Professional WhatsApp Gateway with **68 API endpoints** for complete WhatsApp automation.
+Professional WhatsApp Gateway with **91 API endpoints** for complete WhatsApp automation.
 
 ## 🔐 Authentication
 All endpoints require authentication via:

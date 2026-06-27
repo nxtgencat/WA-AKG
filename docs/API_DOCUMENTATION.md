@@ -5074,6 +5074,267 @@ Then send a message to a WhatsApp session. Check your server logs — should sho
 
 ---
 
+---
+
+## 🎯 Webhook Payload Examples
+
+When WA-AKG sends a POST to your webhook URL, the body has this structure:
+
+```json
+{
+  "event": "message.received",
+  "sessionId": "your-session-id",
+  "timestamp": "2026-06-27T12:00:00.000Z",
+  "data": { }
+}
+```
+
+### Events List
+
+| Event | Trigger |
+| :--- | :--- |
+| `message.received` | New incoming message |
+| `message.sent` | Message sent from dashboard/API |
+| `message.status` | Message delivery/read status change |
+| `message.deleted` | Message recalled/revoked |
+| `message.edited` | Message edited |
+| `connection.update` | Session connection state changed |
+| `group.update` | Group metadata changed (name, desc, settings) |
+| `group.participant` | Member joined/left/promoted/demoted |
+| `contact.update` | Contact name or notify changed |
+| `status.update` | Status/story update |
+
+---
+
+### Payload Examples
+
+#### message.received — Incoming DM text
+
+```json
+{
+  "event": "message.received",
+  "data": {
+    "key": { "id": "AB12CD34EF", "remoteJid": "6281234567890@s.whatsapp.net", "fromMe": false },
+    "pushName": "Budi",
+    "from": "6281234567890@s.whatsapp.net",
+    "sender": "6281234567890@s.whatsapp.net",
+    "isGroup": false,
+    "chatType": "PERSONAL",
+    "type": "TEXT",
+    "content": "Halo, ini test",
+    "fileUrl": null,
+    "caption": null,
+    "quoted": null
+  }
+}
+```
+
+#### message.received — Image/video with caption
+
+```json
+{
+  "event": "message.received",
+  "data": {
+    "from": "6281234567890@s.whatsapp.net",
+    "isGroup": false,
+    "chatType": "PERSONAL",
+    "type": "IMAGE",
+    "content": "Foto liburan",
+    "fileUrl": "/api/media/abc-GH78IJ90KL.jpg",
+    "caption": "Foto liburan"
+  }
+}
+```
+
+#### message.received — Group text
+
+```json
+{
+  "event": "message.received",
+  "data": {
+    "from": "1234567890-123456@g.us",
+    "sender": "6281234567890@s.whatsapp.net",
+    "isGroup": true,
+    "chatType": "GROUP",
+    "type": "TEXT",
+    "content": "Halo group",
+    "key": { "id": "AB12CD34EF", "remoteJid": "1234567890-123456@g.us", "fromMe": false, "participant": "6281234567890@s.whatsapp.net" }
+  }
+}
+```
+
+#### message.received — With quoted reply
+
+```json
+{
+  "event": "message.received",
+  "data": {
+    "from": "6281234567890@s.whatsapp.net",
+    "type": "TEXT",
+    "content": "Setuju!",
+    "quoted": {
+      "key": { "remoteJid": "6281234567890@s.whatsapp.net", "fromMe": true, "id": "XY99ZZ00AA" },
+      "type": "TEXT",
+      "content": "Gimana?"
+    }
+  }
+}
+```
+
+#### message.received — Audio / Sticker / Location / Contact
+
+```json
+{
+  "event": "message.received",
+  "data": { "from": "6281234567890@s.whatsapp.net", "type": "AUDIO", "fileUrl": "/api/media/abc.mp3" }
+}
+```
+For sticker: `type: "STICKER"`, location: `type: "LOCATION"` + `content: "lat,lng"`, contact: `type: "CONTACT"` + `content: "Display Name"`.
+
+#### message.sent — Outgoing text (dashboard/API)
+
+```json
+{
+  "event": "message.sent",
+  "data": {
+    "key": { "id": "BA12CD34EF", "remoteJid": "6281234567890@s.whatsapp.net", "fromMe": true },
+    "from": "6281234567890@s.whatsapp.net",
+    "receiver": "6281234567890@s.whatsapp.net",
+    "sender": "ME",
+    "isGroup": false,
+    "chatType": "PERSONAL",
+    "type": "TEXT",
+    "content": "Pesan balasan",
+    "fileUrl": null,
+    "quoted": null
+  }
+}
+```
+
+#### message.sent — Outgoing media
+
+```json
+{
+  "event": "message.sent",
+  "data": {
+    "from": "6281234567890@s.whatsapp.net",
+    "type": "IMAGE",
+    "content": "Foto liburan",
+    "fileUrl": "/api/media/abc-CD78EF90GH.jpg",
+    "caption": "Foto liburan"
+  }
+}
+```
+
+#### message.sent — To group
+
+```json
+{
+  "event": "message.sent",
+  "data": {
+    "from": "1234567890-123456@g.us",
+    "receiver": "1234567890-123456@g.us",
+    "sender": "ME",
+    "isGroup": true,
+    "chatType": "GROUP",
+    "type": "TEXT",
+    "content": "Saya setuju",
+    "key": { "participant": "6281234567890@s.whatsapp.net" }
+  }
+}
+```
+
+#### message.status — Delivery/read update
+
+```json
+{
+  "event": "message.status",
+  "data": { "keyId": "AB12CD34EF", "remoteJid": "6281234567890@s.whatsapp.net", "status": "DELIVERED" }
+}
+```
+
+Status flow: `PENDING` → `SENT` → `DELIVERED` → `READ`
+
+#### message.deleted — Message recalled/revoked
+
+```json
+{
+  "event": "message.deleted",
+  "data": { "keyId": "DE12LT34EF", "remoteJid": "6281234567890@s.whatsapp.net", "fromMe": false }
+}
+```
+
+#### message.edited — Message edited
+
+```json
+{
+  "event": "message.edited",
+  "data": { "keyId": "ED12IT34EF", "newContent": "Pesan diperbaiki", "remoteJid": "6281234567890@s.whatsapp.net" }
+}
+```
+
+#### connection.update — Session connection state
+
+```json
+{
+  "event": "connection.update",
+  "data": { "status": "CONNECTED", "qr": null }
+}
+```
+
+Status: `SCAN_QR` (includes QR), `CONNECTED`, `DISCONNECTED`, `LOGGED_OUT`, `STOPPED`
+
+#### group.update — Group metadata changed
+
+```json
+{
+  "event": "group.update",
+  "data": {
+    "jid": "1234567890-123456@g.us",
+    "subject": "Nama Grup Baru",
+    "desc": "Deskripsi grup",
+    "restrict": true,
+    "announce": false,
+    "owner": "6281234567890@s.whatsapp.net"
+  }
+}
+```
+
+#### group.participant — Member joined/left/promoted
+
+```json
+{
+  "event": "group.participant",
+  "data": {
+    "jid": "1234567890-123456@g.us",
+    "action": "add",
+    "participants": ["6281234567890@s.whatsapp.net"]
+  }
+}
+```
+
+Actions: `add`, `remove`, `promote`, `demote`
+
+#### contact.update — Contact name/notify changed
+
+```json
+{
+  "event": "contact.update",
+  "data": { "jid": "6281234567890@s.whatsapp.net", "name": "Budi Santoso", "notify": "Budi" }
+}
+```
+
+#### status.update — Status/story update
+
+```json
+{
+  "event": "status.update",
+  "data": { "from": "status@broadcast", "type": "TEXT", "content": "Halo semua" }
+}
+```
+
+---
+
 ## 📂 Users
 
 ### \[POST\] /users
