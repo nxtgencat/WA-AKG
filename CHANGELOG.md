@@ -5,6 +5,10 @@
 - **Receiver info in webhook payload (#58)**: Added explicit `receiver` field to `message.sent` webhook for clarity.
 - **Webhook empty key fields**: Fixed Baileys `WAMessage` vs `MessageKey` type mismatch — now correctly extracts `MessageKey` from returned `WAMessage` before passing to webhook.
 
+### Changed
+- **Swagger version**: Updated from v1.3.0 to v1.6.1, endpoint count corrected to 91.
+- **Docs**: Added 15 webhook payload examples to `API_DOCUMENTATION.md` covering all event types (message.received, message.sent, message.status, message.deleted, message.edited, connection.update, group.update, group.participant, contact.update, status.update).
+
 ## [v1.6.0] - 2026-06-23
 
 ### Added
