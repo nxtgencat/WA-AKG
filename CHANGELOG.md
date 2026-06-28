@@ -1,3 +1,25 @@
+## [v1.6.2] - 2026-06-28
+
+### Added
+- **Webhook Logs & Test**: Added dedicated endpoints and popup dialog to test and view realtime webhook delivery logs with auto-refresh and load more pagination.
+- **Webhook Receiver Field**: Added explicit `receiver` field to `message.received` and `onMessageReceived` webhooks (#58).
+- **GitHub Templates**: Added issue templates, PR template, `SECURITY.md`, `CODEOWNERS`, and `FUNDING.yml`.
+
+### Changed
+- **Webhook Logs UI**: Redesigned to master-detail split layout, improved JSON payload viewing area, and resolved UI overflow/scrolling issues.
+- **Docker Multi-stage Build**: Refactored `Dockerfile` for multi-stage build, adding `.dockerignore`, cleaning cache, and pruning dev dependencies.
+- **Node Version**: Bumped Node version from 20-alpine to 26-alpine (#63, #64, #62).
+- **React 19 Compat**: Added `--legacy-peer-deps` to Dockerfile `npm ci` for swagger-ui-react compatibility.
+- **Docs UI**: Restyled code blocks on `/docs` page to clean minimalist (Stripe style).
+- **Swagger Updates**: Bumped swagger to v1.6.1 and added complete webhook payload examples.
+- **CI Workflows**: Cleaned up CI workflows, keeping only templates and dependabot.
+
+### Fixed
+- **Webhook Logs Issues**: Fixed dynamic system timezone configuration, stale closure polling bug, and constrained modal height.
+- **Auth & Security**: Applied critical auth fixes and proper session resolution in test & logs endpoints.
+- **Docs UI Bug**: Fixed code blocks being invisible on `/docs` page.
+- **JID Suffix**: Stripped device suffix (`:47`) from own JID in webhook receiver/from.
+
 ## [v1.6.1] - 2026-06-27
 
 ### Fixed
