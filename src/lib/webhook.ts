@@ -6,6 +6,7 @@ import path from "path";
 import pino from "pino";
 import { resolveToPhoneJidBySessionId as resolveToPhoneJid, isLidJid } from "./jid-utils";
 import { logger } from "./logger";
+import { waManager } from "@/modules/whatsapp/manager";
 
 // Event types that can trigger webhooks
 export type WebhookEventType =
@@ -262,9 +263,21 @@ export async function downloadAndSaveMedia(message: WAMessage, sessionId: string
 }
 
 /**
- * Helper to dispatch message received event
- * Normalizes message content to match API structure
+ * Get WA-AKG's own clean phone JID for a session
+ * Strips device suffix (e.g. :47@s.whatsapp.net → @s.whatsapp.net)
  */
+function getOwnJid(sessionId: string): string | null {
+    try {
+        const instance = waManager.getInstance(sessionId);
+        const jid = instance?.socket?.user?.id || null;
+        if (!jid) return null;
+        // Strip device suffix (e.g. :47) — Baileys includes device ID in user.id
+        return jid.replace(/:\d+(?=@)/g, '');
+    } catch {
+        return null;
+    }
+}
+
 export async function onMessageReceived(sessionId: string, message: any, existingFileUrl?: string | null) {
     // Re-calculate fields to match store logic EXACTLY
     const remoteJid = message.key?.remoteJid || "";
@@ -343,7 +356,8 @@ export async function onMessageReceived(sessionId: string, message: any, existin
         messageTimestamp: message.messageTimestamp,
 
         // Simplified Fields — always @s.whatsapp.net format
-        from: normalizedFrom,       // Chat ID (normalized)
+        from: normalizedFrom,       // Sender — who sent it (#O in DM), consistent: "from" = who sent it
+        receiver: getOwnJid(sessionId), // WA-AKG's own number (#M)
         sender: sender,             // Who Sent It (normalized JID or enriched Object)
         isGroup: isGroup,           // Boolean
         chatType: getChatType(remoteJid), // PERSONAL | GROUP | STATUS | NEWSLETTER
@@ -395,8 +409,8 @@ export async function onMessageSent(sessionId: string, message: any, existingFil
         },
 
         // Simplified Fields — always @s.whatsapp.net format
-        from: normalizedFrom,       // Chat ID (normalized)
-        receiver: normalizedFrom,   // Receiver JID (explicit — same as from for sent messages)
+        from: getOwnJid(sessionId), // Sender — WA-AKG's own number (#M), consistent: "from" = who sent it
+        receiver: normalizedFrom,   // Who the message was sent TO — other party (#O) in DM, group JID in group chat
         sender: sender,             // "ME" or normalized JID
         isGroup: isGroup,           // Boolean
         chatType: getChatType(remoteJid), // PERSONAL | GROUP | STATUS | NEWSLETTER
