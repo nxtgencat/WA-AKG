@@ -94,7 +94,9 @@ export default function WebhooksPage() {
     // Log viewer state
     const [expandedLog, setExpandedLog] = useState<string | null>(null);
     const [loadingLogs, setLoadingLogs] = useState<string | null>(null);
+    const [loadingMore, setLoadingMore] = useState<string | null>(null);
     const [logs, setLogs] = useState<Record<string, WebhookLog[]>>({});
+    const [logMeta, setLogMeta] = useState<Record<string, { total: number; offset: number; limit: number }>>({});
 
     useEffect(() => {
         if (sessions.length > 0) {
@@ -178,19 +180,52 @@ export default function WebhooksPage() {
     };
 
     const fetchLogs = async (webhookId: string) => {
+        // Fetch first page (latest) — replaces existing list for fresh view
         setLoadingLogs(webhookId);
         try {
             const webhook = webhooks.find(w => w.id === webhookId);
             const targetSessionId = webhook?.sessionId || sessionId;
-            const res = await fetch(`/api/webhooks/${targetSessionId}/${webhookId}/logs?limit=50`);
+            const res = await fetch(`/api/webhooks/${targetSessionId}/${webhookId}/logs?limit=50&offset=0`);
             if (res.ok) {
                 const data = await res.json();
                 setLogs(prev => ({ ...prev, [webhookId]: data?.data || [] }));
+                setLogMeta(prev => ({ ...prev, [webhookId]: { total: data.total || 0, offset: 50, limit: 50 } }));
             }
         } catch (error) {
             console.error("Failed to fetch logs", error);
         } finally {
             setLoadingLogs(null);
+        }
+    };
+
+    const loadMoreLogs = async (webhookId: string) => {
+        const meta = logMeta[webhookId];
+        if (!meta || loadingMore === webhookId) return;
+        setLoadingMore(webhookId);
+        try {
+            const webhook = webhooks.find(w => w.id === webhookId);
+            const targetSessionId = webhook?.sessionId || sessionId;
+            const res = await fetch(`/api/webhooks/${targetSessionId}/${webhookId}/logs?limit=50&offset=${meta.offset}`);
+            if (res.ok) {
+                const data = await res.json();
+                const newEntries = data?.data || [];
+                setLogs(prev => ({
+                    ...prev,
+                    [webhookId]: [...(prev[webhookId] || []), ...newEntries]
+                }));
+                setLogMeta(prev => ({
+                    ...prev,
+                    [webhookId]: {
+                        total: data.total || meta.total,
+                        offset: meta.offset + newEntries.length,
+                        limit: 50
+                    }
+                }));
+            }
+        } catch (error) {
+            console.error("Failed to load more logs", error);
+        } finally {
+            setLoadingMore(null);
         }
     };
 
@@ -203,14 +238,31 @@ export default function WebhooksPage() {
         fetchLogs(webhookId);
     };
 
-    // Realtime polling: refresh logs every 5s while any log viewer is expanded
+    // Realtime polling: check for new entries every 5s while log viewer is expanded
     useEffect(() => {
         if (!expandedLog) return;
-        const interval = setInterval(() => {
-            fetchLogs(expandedLog);
+        const interval = setInterval(async () => {
+            const webhook = webhooks.find(w => w.id === expandedLog);
+            if (!webhook) return;
+            const targetSessionId = webhook?.sessionId || sessionId;
+            try {
+                // Fetch only latest entry to check for new ones
+                const res = await fetch(`/api/webhooks/${targetSessionId}/${expandedLog}/logs?limit=1&offset=0`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const latestArr = data?.data || [];
+                    const currentLogs = logs[expandedLog] || [];
+                    // If new entry arrived, refresh first page (keep loaded-more entries intact)
+                    if (latestArr.length > 0 && (currentLogs.length === 0 || latestArr[0].id !== currentLogs[0]?.id)) {
+                        fetchLogs(expandedLog);
+                    }
+                }
+            } catch {
+                // silent
+            }
         }, 5000);
         return () => clearInterval(interval);
-    }, [expandedLog]);
+    }, [expandedLog, sessionId, webhooks]);
 
     // Edit state
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -734,6 +786,36 @@ export default function WebhooksPage() {
                                                                     </div>
                                                                 ))}
                                                             </div>
+                                                            {/* Load more */}
+                                                            {(() => {
+                                                                const meta = logMeta[webhook.id];
+                                                                const shown = webhookLogs?.length || 0;
+                                                                const total = meta?.total || 0;
+                                                                const hasMore = shown < total;
+                                                                const isLoadingMore = loadingMore === webhook.id;
+                                                                return hasMore ? (
+                                                                    <div className="p-2 border-t">
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            className="w-full text-xs"
+                                                                            onClick={() => loadMoreLogs(webhook.id)}
+                                                                            disabled={isLoadingMore}
+                                                                        >
+                                                                            {isLoadingMore ? (
+                                                                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                                                            ) : (
+                                                                                <ChevronDown className="h-3 w-3 mr-1" />
+                                                                            )}
+                                                                            Load {total - shown} more
+                                                                        </Button>
+                                                                    </div>
+                                                                ) : shown > 0 ? (
+                                                                    <div className="p-2 border-t text-[10px] text-center text-muted-foreground">
+                                                                        Showing all {total} entries
+                                                                    </div>
+                                                                ) : null;
+                                                            })()}
                                                         </ScrollArea>
                                                     ) : (
                                                         <div className="p-6 text-center text-sm text-muted-foreground space-y-2">
