@@ -166,6 +166,7 @@ export function ChatWindow({ sessionId, jid, name, onBack }: ChatWindowProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
     const [uploadType, setUploadType] = useState<string>("image");
     const [isDragging, setIsDragging] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -205,6 +206,13 @@ export function ChatWindow({ sessionId, jid, name, onBack }: ChatWindowProps) {
     }, [sessionId, jid]);
 
     useEffect(() => { setMessages([]); setOldestTimestamp(null); setHasMore(false); fetchMessages(); }, [fetchMessages]);
+
+    // Auto focus input when chat changes
+    useEffect(() => {
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [jid]);
 
     // Socket real-time
     useEffect(() => {
@@ -584,7 +592,7 @@ export function ChatWindow({ sessionId, jid, name, onBack }: ChatWindowProps) {
                             </div>
                         )}
                         <div className="flex items-end gap-2 p-1 rounded-2xl border border-border/30 bg-background">
-                            <textarea value={input} onChange={(e) => { setInput(e.target.value); const el = e.target; el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 120) + "px"; }}
+                            <textarea ref={inputRef} value={input} onChange={(e) => { setInput(e.target.value); const el = e.target; el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 120) + "px"; }}
                                 onKeyDown={handleKeyDown} placeholder="Type a message..." rows={1} style={{ minHeight: "36px", maxHeight: "120px" }}
                                 className="flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none leading-normal" />
                         </div>
