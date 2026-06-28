@@ -12,7 +12,7 @@ export const getApiDocs = () => {
                 description: `
 # WhatsApp AI Gateway - Complete API Reference
 
-Professional WhatsApp Gateway with **91 API endpoints** for complete WhatsApp automation.
+Professional WhatsApp Gateway with **93 API endpoints** for complete WhatsApp automation.
 
 ## 🔐 Authentication
 All endpoints require authentication via:
@@ -133,6 +133,23 @@ All endpoints require authentication via:
                                 description: "Events to subscribe to: message.received, message.sent, message.status, connection.update, group.update, contact.update, status.update, group.participant, message.deleted, message.edited or '*'" 
                             },
                             secret: { type: "string" }
+                        }
+                    },
+                    WebhookLog: {
+                        type: "object",
+                        properties: {
+                            id: { type: "string" },
+                            webhookId: { type: "string" },
+                            event: { type: "string" },
+                            status: { type: "string", enum: ["SUCCESS", "FAILED"] },
+                            requestUrl: { type: "string" },
+                            requestHeaders: { type: "object" },
+                            requestBody: { type: "object" },
+                            responseStatusCode: { type: "integer", nullable: true },
+                            responseBody: { type: "string", nullable: true },
+                            responseTimeMs: { type: "integer", nullable: true },
+                            errorMessage: { type: "string", nullable: true },
+                            createdAt: { type: "string", format: "date-time" }
                         }
                     },
                     Group: {
@@ -3079,6 +3096,85 @@ All endpoints require authentication via:
                             401: { $ref: "#/components/responses/Unauthorized" },
                             404: { description: "Webhook not found" },
                             500: { $ref: "#/components/responses/ServerError" }
+                        }
+                    }
+                },
+
+                "/webhooks/{sessionId}/{id}/test": {
+                    post: {
+                        tags: ["Webhooks"],
+                        summary: "Test webhook endpoint",
+                        description: "Fire a test payload to verify the webhook endpoint is reachable and responding correctly",
+                        parameters: [
+                            { name: "sessionId", in: "path", required: true, schema: { type: "string" } },
+                            { name: "id", in: "path", required: true, schema: { type: "string" } }
+                        ],
+                        responses: {
+                            200: {
+                                description: "Test result",
+                                content: {
+                                    "application/json": {
+                                        schema: {
+                                            type: "object",
+                                            properties: {
+                                                status: { type: "boolean" },
+                                                message: { type: "string" },
+                                                data: {
+                                                    type: "object",
+                                                    properties: {
+                                                        success: { type: "boolean" },
+                                                        statusCode: { type: "integer" },
+                                                        responseBody: { type: "string" },
+                                                        responseTimeMs: { type: "integer" },
+                                                        error: { type: "string" }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            401: { $ref: "#/components/responses/Unauthorized" },
+                            403: { $ref: "#/components/responses/Forbidden" },
+                            404: { description: "Webhook not found" }
+                        }
+                    }
+                },
+                "/webhooks/{sessionId}/{id}/logs": {
+                    get: {
+                        tags: ["Webhooks"],
+                        summary: "Get webhook delivery logs",
+                        description: "Retrieve delivery history for a specific webhook",
+                        parameters: [
+                            { name: "sessionId", in: "path", required: true, schema: { type: "string" } },
+                            { name: "id", in: "path", required: true, schema: { type: "string" } },
+                            { name: "limit", in: "query", schema: { type: "integer", default: 50 } },
+                            { name: "offset", in: "query", schema: { type: "integer", default: 0 } }
+                        ],
+                        responses: {
+                            200: {
+                                description: "Webhook delivery logs",
+                                content: {
+                                    "application/json": {
+                                        schema: {
+                                            type: "object",
+                                            properties: {
+                                                status: { type: "boolean" },
+                                                data: {
+                                                    type: "array",
+                                                    items: { $ref: "#/components/schemas/WebhookLog" }
+                                                },
+                                                total: { type: "integer" },
+                                                limit: { type: "integer" },
+                                                offset: { type: "integer" }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            401: { $ref: "#/components/responses/Unauthorized" },
+                            403: { $ref: "#/components/responses/Forbidden" },
+                            404: { description: "Webhook not found" }
                         }
                     }
                 },

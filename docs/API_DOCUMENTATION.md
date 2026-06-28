@@ -4858,6 +4858,147 @@ curl -X DELETE "http://localhost:3000/api/webhooks/abc123" \
 
 ---
 
+### \[POST\] /webhooks/{sessionId}/{id}/test
+
+**Test webhook endpoint**
+
+Fire a test payload to verify the webhook endpoint is reachable and responding correctly.
+
+#### Parameters
+
+| Name | Located in | Required | Type | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `sessionId` | path | ✅ Yes | string | — |
+| `id` | path | ✅ Yes | string | — |
+
+#### Responses
+
+| Code | Description |
+| :--- | :--- |
+| `200` | Test result |
+| `401` | Unauthorized - Invalid or missing API key |
+| `403` | Forbidden - Access denied |
+| `404` | Webhook not found |
+
+**Response Fields (`200`):**
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `status` | boolean | Operation status |
+| `message` | string | Success/failure message |
+| `data.success` | boolean | Whether the test request succeeded |
+| `data.statusCode` | integer (nullable) | HTTP status code returned by webhook |
+| `data.responseBody` | string (nullable) | Response body from webhook |
+| `data.responseTimeMs` | integer | Response time in milliseconds |
+| `data.error` | string (nullable) | Error message if failed |
+
+**Response Example:**
+
+```json
+{
+  "status": true,
+  "message": "Webhook test successful",
+  "data": {
+    "success": true,
+    "statusCode": 200,
+    "responseBody": "OK",
+    "responseTimeMs": 234
+  }
+}
+```
+
+#### cURL Example
+
+```bash
+curl -X POST "http://localhost:3000/api/webhooks/session-01/abc123/test" \
+  -H "X-API-Key: your-api-key"
+```
+
+---
+
+### \[GET\] /webhooks/{sessionId}/{id}/logs
+
+**Get webhook delivery logs**
+
+Retrieve delivery history for a specific webhook including status, response time, and error messages.
+
+#### Parameters
+
+| Name | Located in | Required | Type | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `sessionId` | path | ✅ Yes | string | — |
+| `id` | path | ✅ Yes | string | — |
+| `limit` | query | No | integer | Max logs to return (default: 50) |
+| `offset` | query | No | integer | Pagination offset (default: 0) |
+
+#### Responses
+
+| Code | Description |
+| :--- | :--- |
+| `200` | Webhook delivery logs |
+| `401` | Unauthorized - Invalid or missing API key |
+| `403` | Forbidden - Access denied |
+| `404` | Webhook not found |
+
+**Response Fields (`200`):**
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `status` | boolean | Operation status |
+| `data` | array of object | Delivery log entries |
+| `total` | integer | Total log count |
+| `limit` | integer | Requested limit |
+| `offset` | integer | Requested offset |
+
+**Log Entry Fields:**
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | string | Log entry ID |
+| `webhookId` | string | Associated webhook ID |
+| `event` | string | Event that triggered the webhook |
+| `status` | string | SUCCESS or FAILED |
+| `requestUrl` | string | Webhook URL called |
+| `responseStatusCode` | integer (nullable) | HTTP response status |
+| `responseBody` | string (nullable) | Response body |
+| `responseTimeMs` | integer (nullable) | Response time in milliseconds |
+| `errorMessage` | string (nullable) | Error message if failed |
+| `createdAt` | string (date-time) | When the delivery occurred |
+
+**Response Example:**
+
+```json
+{
+  "status": true,
+  "data": [
+    {
+      "id": "cmk123abc",
+      "webhookId": "abc123",
+      "event": "message.received",
+      "status": "SUCCESS",
+      "requestUrl": "https://example.com/webhook",
+      "responseStatusCode": 200,
+      "responseBody": "OK",
+      "responseTimeMs": 145,
+      "errorMessage": null,
+      "createdAt": "2026-06-28T10:30:00.000Z"
+    }
+  ],
+  "total": 1,
+  "limit": 50,
+  "offset": 0
+}
+```
+
+#### cURL Example
+
+```bash
+curl -X GET "http://localhost:3000/api/webhooks/session-01/abc123/logs?limit=50&offset=0" \
+  -H "X-API-Key: your-api-key"
+```
+
+---
+
 ## 🔐 Webhook HMAC Verification
 
 WA-AKG signs every webhook request with HMAC-SHA256 when you set a `secret` on your webhook. Receiver **must** verify signature before processing payload.

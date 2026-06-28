@@ -213,6 +213,28 @@ model Webhook {
   
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   session     Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  logs        WebhookLog[]
+}
+
+// Webhook delivery logs — tracks every webhook request attempt
+model WebhookLog {
+  id                 String   @id @default(cuid())
+  webhookId          String
+  event              String   // The event that triggered this webhook
+  status             String   // SUCCESS, FAILED
+  requestUrl         String   @db.Text
+  requestHeaders     Json?
+  requestBody        Json?
+  responseStatusCode Int?
+  responseBody       String?  @db.Text
+  responseTimeMs     Int?
+  errorMessage       String?  @db.Text
+  createdAt          DateTime @default(now())
+
+  webhook            Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([webhookId, createdAt])
 }
 
 enum AccessMode {

@@ -19,7 +19,8 @@ export type WebhookEventType =
     | "status.update"
     | "group.participant"
     | "message.deleted"
-    | "message.edited";
+    | "message.edited"
+    | "test";
 
 interface WebhookPayload {
     event: WebhookEventType;
@@ -85,7 +86,7 @@ export async function dispatchWebhook(
             }
 
             // Send webhook in background
-            sendWebhookRequest(webhook.url, payload, webhook.secret).catch(err => {
+            sendWebhookRequest(webhook.url, payload, webhook.secret, webhook.id).catch(err => {
                 logger.error("Webhook", `Webhook ${webhook.id} failed:`, err);
             });
         }
@@ -122,9 +123,10 @@ function jsonReplacer(key: string, value: any) {
 
 /**
  * Send HTTP POST request to webhook endpoint
+ * Records delivery log to database
  */
-async function sendWebhookRequest(url: string, payload: WebhookPayload, secret?: string | null) {
-    // Use custom replacer for BigInt support
+async function sendWebhookRequest(url: string, payload: WebhookPayload, secret?: string | null, webhookId?: string) {
+    const startedAt = Date.now();
     const body = JSON.stringify(payload, jsonReplacer);
 
     const headers: Record<string, string> = {
@@ -141,18 +143,187 @@ async function sendWebhookRequest(url: string, payload: WebhookPayload, secret?:
         headers["X-Webhook-Signature"] = `sha256=${signature}`;
     }
 
-    const response = await fetch(url, {
-        method: "POST",
-        headers,
-        body,
-        signal: AbortSignal.timeout(10000) // 10 second timeout
-    });
+    let response: Response;
+    let responseBody: string | undefined;
+    let errorMessage: string | undefined;
 
-    if (!response.ok) {
-        throw new Error(`Webhook returned ${response.status}: ${response.statusText}`);
+    try {
+        response = await fetch(url, {
+            method: "POST",
+            headers,
+            body,
+            signal: AbortSignal.timeout(10000) // 10 second timeout
+        });
+
+        responseBody = await response.text().catch(() => undefined);
+
+        if (!response.ok) {
+            errorMessage = `Webhook returned ${response.status}: ${response.statusText}`;
+        }
+    } catch (err: any) {
+        errorMessage = err.message || "Webhook request failed";
+        response = null as unknown as Response;
+    }
+
+    // Calculate response time
+    const responseTimeMs = Date.now() - startedAt;
+
+    // Record delivery log
+    if (webhookId) {
+        recordWebhookLog({
+            webhookId,
+            event: payload.event,
+            status: errorMessage ? "FAILED" : "SUCCESS",
+            requestUrl: url,
+            requestHeaders: headers,
+            requestBody: payload,
+            responseStatusCode: response?.status ?? null,
+            responseBody: responseBody ?? null,
+            responseTimeMs,
+            errorMessage: errorMessage ?? null
+        }).catch(err => logger.error("Webhook", "Failed to save webhook log:", err));
+    }
+
+    if (errorMessage) {
+        throw new Error(errorMessage);
     }
 
     return response;
+}
+
+/**
+ * Record a webhook delivery log entry
+ */
+async function recordWebhookLog(data: {
+    webhookId: string;
+    event: string;
+    status: string;
+    requestUrl: string;
+    requestHeaders?: any;
+    requestBody?: any;
+    responseStatusCode?: number | null;
+    responseBody?: string | null;
+    responseTimeMs?: number | null;
+    errorMessage?: string | null;
+}) {
+    await prisma.webhookLog.create({
+        data: {
+            webhookId: data.webhookId,
+            event: data.event,
+            status: data.status,
+            requestUrl: data.requestUrl,
+            requestHeaders: data.requestHeaders || undefined,
+            requestBody: data.requestBody || undefined,
+            responseStatusCode: data.responseStatusCode ?? null,
+            responseBody: data.responseBody || null,
+            responseTimeMs: data.responseTimeMs ?? null,
+            errorMessage: data.errorMessage || null,
+        }
+    });
+}
+
+/**
+ * Send a test webhook to verify endpoint works
+ * Returns result without throwing
+ */
+export async function testWebhook(webhookId: string, url: string, secret?: string | null): Promise<{
+    success: boolean;
+    statusCode?: number;
+    responseBody?: string;
+    responseTimeMs: number;
+    error?: string;
+}> {
+    const startedAt = Date.now();
+
+    const testPayload: WebhookPayload = {
+        event: "test",
+        sessionId: "test",
+        timestamp: new Date().toISOString(),
+        data: {
+            message: "This is a test webhook from WA-AKG",
+            timestamp: new Date().toISOString()
+        }
+    };
+
+    const body = JSON.stringify(testPayload, jsonReplacer);
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "User-Agent": "WA-AKG-Webhook/1.0"
+    };
+
+    if (secret) {
+        const signature = crypto
+            .createHmac("sha256", secret)
+            .update(body)
+            .digest("hex");
+        headers["X-Webhook-Signature"] = `sha256=${signature}`;
+    }
+
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers,
+            body,
+            signal: AbortSignal.timeout(15000)
+        });
+
+        const responseTimeMs = Date.now() - startedAt;
+        const responseBody = await response.text().catch(() => undefined);
+
+        // Record test log
+        await recordWebhookLog({
+            webhookId,
+            event: "test",
+            status: response.ok ? "SUCCESS" : "FAILED",
+            requestUrl: url,
+            requestHeaders: headers,
+            requestBody: testPayload,
+            responseStatusCode: response.status,
+            responseBody: responseBody || null,
+            responseTimeMs,
+            errorMessage: response.ok ? null : `Webhook returned ${response.status}: ${response.statusText}`
+        });
+
+        if (!response.ok) {
+            return {
+                success: false,
+                statusCode: response.status,
+                responseBody,
+                responseTimeMs,
+                error: `Returned ${response.status}: ${response.statusText}`
+            };
+        }
+
+        return {
+            success: true,
+            statusCode: response.status,
+            responseBody,
+            responseTimeMs
+        };
+    } catch (err: any) {
+        const responseTimeMs = Date.now() - startedAt;
+        const errorMsg = err.message || "Request failed";
+
+        // Record failed test log
+        await recordWebhookLog({
+            webhookId,
+            event: "test",
+            status: "FAILED",
+            requestUrl: url,
+            requestHeaders: headers,
+            requestBody: testPayload,
+            responseStatusCode: null,
+            responseBody: null,
+            responseTimeMs,
+            errorMessage: errorMsg
+        });
+
+        return {
+            success: false,
+            error: errorMsg,
+            responseTimeMs
+        };
+    }
 }
 
 /**
