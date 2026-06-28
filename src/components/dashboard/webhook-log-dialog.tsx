@@ -429,12 +429,12 @@ export default function WebhookLogDialog({ webhookId, webhookName, targetSession
                                             </div>
                                         </div>
 
-                                        {/* Row 2: URL bar (Full width, wraps long URLs cleanly without horizontal cutting) */}
+                                        {/* Row 2: URL bar (Full width, wraps long URLs cleanly but capped to max height with internal scrollbar) */}
                                         <div className="flex items-start gap-2.5 bg-slate-50 border border-slate-200/80 py-1.5 px-3 rounded-lg w-full shadow-inner">
-                                            <span className="text-[9px] font-bold text-slate-500 select-none bg-slate-200/60 px-1.5 py-0.5 rounded mt-0.5">
+                                            <span className="text-[9px] font-bold text-slate-500 select-none bg-slate-200/60 px-1.5 py-0.5 rounded mt-0.5 shrink-0">
                                                 POST
                                             </span>
-                                            <div className="text-[11px] font-mono text-slate-600 break-all select-all flex-1 leading-relaxed">
+                                            <div className="text-[11px] font-mono text-slate-600 break-all select-all flex-1 leading-relaxed max-h-[50px] overflow-y-auto custom-scrollbar-light pr-1">
                                                 {selectedLog.requestUrl}
                                             </div>
                                             <Button
