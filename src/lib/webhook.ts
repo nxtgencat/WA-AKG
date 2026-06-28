@@ -6,6 +6,7 @@ import path from "path";
 import pino from "pino";
 import { resolveToPhoneJidBySessionId as resolveToPhoneJid, isLidJid } from "./jid-utils";
 import { logger } from "./logger";
+import { waManager } from "@/modules/whatsapp/manager";
 
 // Event types that can trigger webhooks
 export type WebhookEventType =
@@ -268,9 +269,8 @@ export async function downloadAndSaveMedia(message: WAMessage, sessionId: string
 /**
  * Helper to get the own JID for a session from the WhatsAppManager
  */
-async function getOwnJid(sessionId: string): Promise<string | null> {
+function getOwnJid(sessionId: string): string | null {
     try {
-        const { waManager } = await import("@/modules/whatsapp/manager");
         const instance = waManager.getInstance(sessionId);
         return instance?.socket?.user?.id || null;
     } catch {
@@ -278,7 +278,7 @@ async function getOwnJid(sessionId: string): Promise<string | null> {
     }
 }
 
-export async function onMessageReceived(sessionId: string, message: any, existingFileUrl?: string | null, ownJid?: string | null) {
+export async function onMessageReceived(sessionId: string, message: any, existingFileUrl?: string | null) {
     // Re-calculate fields to match store logic EXACTLY
     const remoteJid = message.key?.remoteJid || "";
     const fromMe = message.key?.fromMe || false;
@@ -345,11 +345,6 @@ export async function onMessageReceived(sessionId: string, message: any, existin
     const normalized = extractMessageContent(message);
     const quoted = await extractQuotedMessageAsync(message, sessionId);
 
-    // Resolve own JID if not provided
-    if (!ownJid) {
-        ownJid = await getOwnJid(sessionId);
-    }
-
     dispatchWebhook(sessionId, "message.received", {
         key: {
             id: message.key?.id,
@@ -361,8 +356,8 @@ export async function onMessageReceived(sessionId: string, message: any, existin
         messageTimestamp: message.messageTimestamp,
 
         // Simplified Fields — always @s.whatsapp.net format
-        from: normalizedFrom,       // Chat ID (normalized)
-        receiver: ownJid || normalizedFrom, // Receiver — WA-AKG's own number (#M)
+        from: normalizedFrom,       // Sender — who sent it (#O in DM), consistent: "from" = who sent it
+        receiver: getOwnJid(sessionId), // WA-AKG's own number (#M)
         sender: sender,             // Who Sent It (normalized JID or enriched Object)
         isGroup: isGroup,           // Boolean
         chatType: getChatType(remoteJid), // PERSONAL | GROUP | STATUS | NEWSLETTER
@@ -414,8 +409,8 @@ export async function onMessageSent(sessionId: string, message: any, existingFil
         },
 
         // Simplified Fields — always @s.whatsapp.net format
-        from: normalizedFrom,       // Chat ID (normalized)
-        receiver: normalizedFrom,   // Receiver JID (explicit — same as from for sent messages)
+        from: getOwnJid(sessionId), // Sender — WA-AKG's own number (#M), consistent: "from" = who sent it
+        receiver: normalizedFrom,   // Who the message was sent TO — other party (#O) in DM, group JID in group chat
         sender: sender,             // "ME" or normalized JID
         isGroup: isGroup,           // Boolean
         chatType: getChatType(remoteJid), // PERSONAL | GROUP | STATUS | NEWSLETTER

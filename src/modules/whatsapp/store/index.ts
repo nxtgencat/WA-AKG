@@ -561,7 +561,7 @@ async function processAndSaveMessage(
             if (fromMe) {
                 onMessageSent(sessionId, msg, fileUrl).catch(e => logger.error("Webhook", "Error in onMessageSent", e));
             } else {
-                onMessageReceived(sessionId, msg, fileUrl, sock?.user?.id).catch(e => logger.error("Webhook", "Error in onMessageReceived", e));
+                onMessageReceived(sessionId, msg, fileUrl).catch(e => logger.error("Webhook", "Error in onMessageReceived", e));
             }
         }
 
