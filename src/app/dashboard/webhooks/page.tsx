@@ -165,11 +165,32 @@ export default function WebhooksPage() {
             } else {
                 toast.error(`Webhook test failed: ${data?.data?.error || "Unknown error"}`);
             }
+            // Auto-refresh logs after test if viewer is open
+            if (expandedLog === webhook.id) {
+                fetchLogs(webhook.id);
+            }
         } catch (error: any) {
             setTestResults(prev => ({ ...prev, [webhook.id]: { success: false, error: error.message } }));
             toast.error("Failed to test webhook");
         } finally {
             setTestingId(null);
+        }
+    };
+
+    const fetchLogs = async (webhookId: string) => {
+        setLoadingLogs(webhookId);
+        try {
+            const webhook = webhooks.find(w => w.id === webhookId);
+            const targetSessionId = webhook?.sessionId || sessionId;
+            const res = await fetch(`/api/webhooks/${targetSessionId}/${webhookId}/logs?limit=50`);
+            if (res.ok) {
+                const data = await res.json();
+                setLogs(prev => ({ ...prev, [webhookId]: data?.data || [] }));
+            }
+        } catch (error) {
+            console.error("Failed to fetch logs", error);
+        } finally {
+            setLoadingLogs(null);
         }
     };
 
@@ -179,23 +200,17 @@ export default function WebhooksPage() {
             return;
         }
         setExpandedLog(webhookId);
-        if (!logs[webhookId]) {
-            setLoadingLogs(webhookId);
-            try {
-                const webhook = webhooks.find(w => w.id === webhookId);
-                const targetSessionId = webhook?.sessionId || sessionId;
-                const res = await fetch(`/api/webhooks/${targetSessionId}/${webhookId}/logs?limit=50`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setLogs(prev => ({ ...prev, [webhookId]: data?.data || [] }));
-                }
-            } catch (error) {
-                console.error("Failed to fetch logs", error);
-            } finally {
-                setLoadingLogs(null);
-            }
-        }
+        fetchLogs(webhookId);
     };
+
+    // Realtime polling: refresh logs every 5s while any log viewer is expanded
+    useEffect(() => {
+        if (!expandedLog) return;
+        const interval = setInterval(() => {
+            fetchLogs(expandedLog);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [expandedLog]);
 
     // Edit state
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -606,61 +621,125 @@ export default function WebhooksPage() {
                                             {isLogExpanded && (
                                                 <div className="border rounded-md">
                                                     <div className="p-2 bg-slate-50 border-b flex items-center justify-between">
-                                                        <span className="text-xs font-medium text-muted-foreground">
+                                                        <span className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                                                            <History className="h-3 w-3" />
                                                             Delivery History
+                                                            {webhookLogs && (
+                                                                <span className="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded-full">
+                                                                    {webhookLogs.length}
+                                                                </span>
+                                                            )}
                                                         </span>
+                                                        <div className="flex items-center gap-2">
+                                                            {isLoadingLogs && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                                                            <span className="text-[10px] text-muted-foreground" title="Auto-refreshes every 5s">
+                                                                live
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                    {isLoadingLogs ? (
+                                                    {isLoadingLogs && !webhookLogs ? (
                                                         <div className="p-4 text-center text-sm text-muted-foreground">
                                                             <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
                                                             Loading logs...
                                                         </div>
                                                     ) : webhookLogs && webhookLogs.length > 0 ? (
-                                                        <ScrollArea className="max-h-80">
+                                                        <ScrollArea className="max-h-96">
                                                             <div className="divide-y">
                                                                 {webhookLogs.map((log) => (
-                                                                    <div key={log.id} className="p-3 space-y-1 text-sm">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Badge variant={log.status === "SUCCESS" ? "default" : "destructive"} className="text-[10px] px-1.5 py-0">
+                                                                    <div key={log.id}
+                                                                        className={`p-3 space-y-1 text-sm ${
+                                                                            log.status === "SUCCESS"
+                                                                                ? "hover:bg-green-50/30"
+                                                                                : "bg-red-50/30 hover:bg-red-50/60"
+                                                                        }`}
+                                                                    >
+                                                                        {/* Header row */}
+                                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                                            <Badge
+                                                                                variant={log.status === "SUCCESS" ? "default" : "destructive"}
+                                                                                className="text-[10px] px-1.5 py-0"
+                                                                            >
                                                                                 {log.status}
                                                                             </Badge>
-                                                                            <span className="text-xs font-mono text-muted-foreground">
+                                                                            <span className="text-xs font-mono text-muted-foreground bg-slate-100 px-1 rounded">
                                                                                 {log.event}
                                                                             </span>
-                                                                            {log.responseTimeMs != null && (
-                                                                                <span className="text-xs text-muted-foreground">{log.responseTimeMs}ms</span>
-                                                                            )}
                                                                             {log.responseStatusCode != null && (
-                                                                                <span className={`text-xs font-mono ${
+                                                                                <span className={`text-xs font-mono font-semibold ${
                                                                                     log.responseStatusCode < 400 ? "text-green-600" : "text-red-600"
                                                                                 }`}>
-                                                                                    HTTP {log.responseStatusCode}
+                                                                                    {log.responseStatusCode}
                                                                                 </span>
                                                                             )}
-                                                                            <span className="text-xs text-muted-foreground ml-auto">
+                                                                            {log.responseTimeMs != null && (
+                                                                                <span className="text-xs text-muted-foreground">
+                                                                                    {log.responseTimeMs < 1000
+                                                                                        ? `${log.responseTimeMs}ms`
+                                                                                        : `${(log.responseTimeMs / 1000).toFixed(1)}s`}
+                                                                                </span>
+                                                                            )}
+                                                                            <span className="text-[10px] text-muted-foreground ml-auto whitespace-nowrap" title={formatTime(log.createdAt)}>
                                                                                 {formatTime(log.createdAt)}
                                                                             </span>
                                                                         </div>
+
+                                                                        {/* URL */}
+                                                                        <div className="text-xs font-mono text-muted-foreground truncate" title={log.requestUrl}>
+                                                                            {log.requestUrl}
+                                                                        </div>
+
+                                                                        {/* Error message - prominent */}
                                                                         {log.errorMessage && (
-                                                                            <p className="text-xs text-red-600">{log.errorMessage}</p>
+                                                                            <div className="text-xs text-red-600 bg-red-50 border border-red-100 p-1.5 rounded flex items-start gap-1">
+                                                                                <span className="font-bold">✗</span>
+                                                                                <span>{log.errorMessage}</span>
+                                                                            </div>
                                                                         )}
-                                                                        {log.responseBody && (
-                                                                            <details>
-                                                                                <summary className="cursor-pointer text-xs text-muted-foreground">Response</summary>
-                                                                                <pre className="mt-1 text-xs bg-slate-50 p-2 rounded overflow-x-auto max-h-32">
-                                                                                    {log.responseBody.length > 500
-                                                                                        ? log.responseBody.slice(0, 500) + "..."
-                                                                                        : log.responseBody}
-                                                                                </pre>
-                                                                            </details>
-                                                                        )}
+
+                                                                        {/* Detailed expandable sections */}
+                                                                        <div className="flex flex-wrap gap-2 pt-1">
+                                                                            {log.requestBody && (
+                                                                                <details className="text-xs flex-1 min-w-0">
+                                                                                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                                                                                        Request Body
+                                                                                    </summary>
+                                                                                    <pre className="mt-1 bg-slate-50 p-2 rounded overflow-x-auto max-h-28 text-[10px] border">
+                                                                                        {formatJson(log.requestBody)}
+                                                                                    </pre>
+                                                                                </details>
+                                                                            )}
+                                                                            {log.responseBody && (
+                                                                                <details className="text-xs flex-1 min-w-0">
+                                                                                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                                                                                        Response Body
+                                                                                    </summary>
+                                                                                    <pre className="mt-1 bg-slate-50 p-2 rounded overflow-x-auto max-h-28 text-[10px] border">
+                                                                                        {log.responseBody.length > 1000
+                                                                                            ? log.responseBody.slice(0, 1000) + "..."
+                                                                                            : log.responseBody}
+                                                                                    </pre>
+                                                                                </details>
+                                                                            )}
+                                                                            {log.requestHeaders && (
+                                                                                <details className="text-xs flex-1 min-w-0">
+                                                                                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                                                                                        Headers
+                                                                                    </summary>
+                                                                                    <pre className="mt-1 bg-slate-50 p-2 rounded overflow-x-auto max-h-28 text-[10px] border">
+                                                                                        {formatJson(log.requestHeaders)}
+                                                                                    </pre>
+                                                                                </details>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                 ))}
                                                             </div>
                                                         </ScrollArea>
                                                     ) : (
-                                                        <div className="p-4 text-center text-sm text-muted-foreground">
-                                                            No delivery logs yet. Webhooks will appear here after events are dispatched.
+                                                        <div className="p-6 text-center text-sm text-muted-foreground space-y-2">
+                                                            <History className="h-8 w-8 mx-auto opacity-30" />
+                                                            <p>No delivery logs yet.</p>
+                                                            <p className="text-xs">Webhook logs appear here after events are dispatched or when you click "Test".</p>
                                                         </div>
                                                     )}
                                                 </div>
