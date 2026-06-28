@@ -383,8 +383,9 @@ export default function WebhookLogDialog({ webhookId, webhookName, targetSession
                             {selectedLog ? (
                                 <div className="flex-1 flex flex-col min-h-0">
                                     {/* Details Subheader */}
-                                    <div className="p-3.5 px-5 border-b flex flex-col gap-2.5 bg-slate-50/10 shrink-0">
-                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                    <div className="p-4 px-5 border-b flex flex-col gap-3 bg-slate-50/10 shrink-0">
+                                        {/* Row 1: Back Button & Badges */}
+                                        <div className="flex items-center justify-between gap-2.5 flex-wrap">
                                             {/* Mobile Back Button */}
                                             <Button
                                                 variant="ghost"
@@ -396,7 +397,7 @@ export default function WebhookLogDialog({ webhookId, webhookName, targetSession
                                                 Back
                                             </Button>
 
-                                            <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                                            <div className="flex flex-wrap items-center gap-2 text-xs">
                                                 <span className="font-semibold font-mono bg-slate-100 border px-2 py-0.5 rounded text-slate-700 shadow-sm">
                                                     {selectedLog.event}
                                                 </span>
@@ -426,34 +427,37 @@ export default function WebhookLogDialog({ webhookId, webhookName, targetSession
                                                     </span>
                                                 )}
                                             </div>
-
-                                            <span className="text-[10px] text-slate-400 font-mono truncate hidden lg:inline select-all">
-                                                ID: {selectedLog.id}
-                                            </span>
                                         </div>
 
-                                        {/* URL bar + Attempted timestamp consolidated */}
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 py-1.5 px-3 rounded-lg flex-1 max-w-full min-w-0 shadow-inner">
-                                                <span className="text-[9px] font-bold text-slate-500 select-none bg-slate-200/60 px-1.5 py-0.5 rounded">
-                                                    POST
-                                                </span>
-                                                <div className="text-[11px] font-mono text-slate-600 truncate flex-1 select-all" title={selectedLog.requestUrl}>
-                                                    {selectedLog.requestUrl}
-                                                </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-5 w-5 text-slate-400 hover:text-slate-800 shrink-0"
-                                                    onClick={() => copyToClipboard(selectedLog.requestUrl, "URL copied to clipboard")}
-                                                >
-                                                    <Copy className="h-3 w-3" />
-                                                </Button>
+                                        {/* Row 2: URL bar (Full width, wraps long URLs cleanly without horizontal cutting) */}
+                                        <div className="flex items-start gap-2.5 bg-slate-50 border border-slate-200/80 py-1.5 px-3 rounded-lg w-full shadow-inner">
+                                            <span className="text-[9px] font-bold text-slate-500 select-none bg-slate-200/60 px-1.5 py-0.5 rounded mt-0.5">
+                                                POST
+                                            </span>
+                                            <div className="text-[11px] font-mono text-slate-600 break-all select-all flex-1 leading-relaxed">
+                                                {selectedLog.requestUrl}
                                             </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-5 w-5 text-slate-400 hover:text-slate-800 shrink-0 mt-0.5"
+                                                onClick={() => copyToClipboard(selectedLog.requestUrl, "URL copied to clipboard")}
+                                            >
+                                                <Copy className="h-3 w-3" />
+                                            </Button>
+                                        </div>
 
-                                            <div className="text-[10px] text-slate-400 shrink-0 flex items-center gap-1 whitespace-nowrap self-end sm:self-auto font-mono">
-                                                <Info className="h-3.5 w-3.5" />
-                                                {formatTime(selectedLog.createdAt)}
+                                        {/* Row 3: Attempted timestamp and Log ID (Self-wrapping secondary text) */}
+                                        <div className="text-[10px] text-slate-400 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono">
+                                            <div className="flex items-center gap-1.5">
+                                                <Info className="h-3.5 w-3.5 text-slate-400/80" />
+                                                <span>Attempted:</span>
+                                                <span className="font-semibold text-slate-600">{formatTime(selectedLog.createdAt)}</span>
+                                            </div>
+                                            <span className="text-slate-300 hidden sm:inline select-none">•</span>
+                                            <div className="flex items-center gap-1">
+                                                <span>ID:</span>
+                                                <span className="font-semibold text-slate-600 select-all">{selectedLog.id}</span>
                                             </div>
                                         </div>
                                     </div>
