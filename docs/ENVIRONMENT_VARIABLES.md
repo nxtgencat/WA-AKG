@@ -21,10 +21,10 @@ This document provides a comprehensive reference for all configuration options i
 
 ## 🔐 Authentication & Security
 
-### `AUTH_SECRET`
-Used for NextAuth.js session encryption.
+### `AUTH_SECRET` (WAJIB)
+Used for NextAuth.js session encryption. **Tidak memiliki fallback** — server akan gagal startup jika tidak diset.
 > [!IMPORTANT]
-> Generate a strong 32-character secret using: `openssl rand -base64 32`
+> Generate dengan: `openssl rand -base64 32`
 
 ### `NEXTAUTH_URL`
 The base URL where your application is hosted. Essential for callback redirects.
@@ -74,7 +74,24 @@ Controls the verbosity of the WhatsApp engine logs.
 
 ---
 
-## 📝 Example Configuration (Production)
+## 🐳 Docker Compose Variables
+
+Variable-variable berikut khusus diperlukan jika menggunakan `docker-compose.yml`:
+
+| Variable | Required | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `MYSQL_ROOT_PASSWORD` | **Yes** | — | Password untuk root MySQL |
+| `MYSQL_DATABASE` | No | `wa_akg` | Nama database MySQL |
+| `ADMIN_EMAIL` | **Yes** | — | Email SuperAdmin untuk first-run setup |
+| `ADMIN_PASSWORD` | **Yes** | — | Password SuperAdmin |
+
+> [!CAUTION]
+> Jangan gunakan nilai default. Ubah `MYSQL_ROOT_PASSWORD`, `ADMIN_PASSWORD`, dan `NEXT_PUBLIC_SWAGGER_PASSWORD` sebelum production.
+
+---
+
+## 📝 Contoh Konfigurasi (Production)
+
 ```env
 NODE_ENV="production"
 DATABASE_URL="mysql://user:pass@db-host:3306/wa_akg"
@@ -82,9 +99,16 @@ AUTH_SECRET="your-generated-secret"
 NEXTAUTH_URL="https://wa.api.com"
 BAILEYS_LOG_LEVEL="error"
 TZ="Asia/Jakarta"
+
+# Docker-specific (wajib jika pakai docker-compose)
+MYSQL_ROOT_PASSWORD="strong-mysql-password"
+ADMIN_EMAIL="admin@example.com"
+ADMIN_PASSWORD="strong-admin-password"
+NEXT_PUBLIC_SWAGGER_PASSWORD="strong-swagger-password"
 ```
 
 ---
+
 <div align="center">
-  **Last Updated**: May 2026 | **Version**: 1.5.3
+  **Last Updated**: June 2026 | **Version**: 1.6.1
 </div>

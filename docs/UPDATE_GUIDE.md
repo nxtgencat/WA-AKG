@@ -58,6 +58,21 @@ The version number is displayed in the **Dashboard Sidebar** footer.
 | **API Errors** | Ensure your `.env` matches the latest requirements in `docs/ENVIRONMENT_VARIABLES.md`. |
 
 ---
+
+## 🔒 Security Changelog (v1.6.1)
+
+| Perubahan | Sebelum | Sesudah |
+| :--- | :--- | :--- |
+| **AUTH\_SECRET wajib** | Fallback ke `"secret"` jika tidak diset | Server exit dengan error jika tidak diset |
+| **Password plaintext fallback** | `bcrypt.compare() \|\| password === user.password` | Hanya `bcrypt.compare()` |
+| **Docker kredensial** | Hardcoded di `docker-compose.yml` | Dibaca dari `.env` file |
+| **GET /api/settings/system** | Tanpa autentikasi | Minimal login required |
+| **generateApiKey()** | `Math.random()` | Gunakan `crypto.randomBytes()` |
+
+> [!IMPORTANT]
+> Setelah update ke v1.6.1, pastikan `AUTH_SECRET` diset di `.env`. Jika menggunakan Docker, buat `.env` dari `.env.example` sebelum `docker compose up`.
+
+---
 <div align="center">
-  **Version**: 1.1.2 | **Last Verified**: 2026-01-17
+  **Version**: 1.6.1 | **Last Verified**: 2026-06-28
 </div>

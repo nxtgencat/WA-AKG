@@ -4,6 +4,8 @@
 
 Professional WhatsApp Gateway REST API with **81 routes** for complete WhatsApp automation.
 
+> **Version**: 1.6.1 | **Last Updated**: June 2026
+
 ## 🔐 Authentication
 
 All endpoints require one of the following authentication methods:
@@ -12,6 +14,9 @@ All endpoints require one of the following authentication methods:
 | :--- | :--- | :--- |
 | **API Key** | `X-API-Key` (header) | `X-API-Key: your-api-key-here` |
 | **Session Cookie** | `next-auth.session-token` (cookie) | Automatically managed by browser |
+
+> [!IMPORTANT]
+> `AUTH_SECRET` **wajib** diset di `.env` — tidak ada fallback ke default. Server akan crash jika tidak diset.
 
 ## 📋 Common Parameters
 

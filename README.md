@@ -134,22 +134,24 @@ npm run dev
 npm run build && npm start
 ```
 
-### 🐋 Docker Deployment (Zero Configuration)
+### 🐋 Docker Deployment
 
-You can deploy the application and its MySQL database together using Docker Compose with zero initial configuration:
+Deploy WA-AKG and MySQL together using Docker Compose:
 
-1. **Start Services**:
-   Navigate to the `web` directory and run:
+1. **Prepare Environment**:
    ```bash
-   cd web
+   cp .env.example .env
+   ```
+   Edit `.env` — set `AUTH_SECRET`, `MYSQL_ROOT_PASSWORD`, `ADMIN_PASSWORD`, and `NEXT_PUBLIC_SWAGGER_PASSWORD` with strong unique values.
+
+2. **Start Services**:
+   ```bash
    docker compose up -d
    ```
-   This automatically builds the Next.js application, pulls MySQL 8.0, creates database tables, and provisions the default SuperAdmin user:
-   - **Email**: `admin@example.com`
-   - **Password**: `admin123`
+   This builds the app, pulls MySQL 8.0, creates tables, and provisions a SuperAdmin user using the credentials from your `.env` file.
 
-2. **Customization (Optional)**:
-   To customize settings, edit the environment variables directly in `web/docker-compose.yml` (e.g. `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `AUTH_SECRET`, `TZ`, etc.), or copy `.env.example` to `.env` in the `web` folder.
+3. **Customization**:
+   See [Environment Variables Guide](docs/ENVIRONMENT_VARIABLES.md) for all available options.
 
 ---
 
@@ -197,9 +199,12 @@ curl -X POST http://localhost:3000/api/messages/session_01/62812345678@s.whatsap
 ---
 
 ## 🛡️ Security
-- **API Key Auth**: Secured endpoints using `X-API-Key`.
+- **API Key Auth**: Secured endpoints using `X-API-Key` header.
 - **RBAC**: Multi-role support (`SUPERADMIN`, `OWNER`, `STAFF`).
-- **Encrypted Storage**: Sensitive credentials are secure with bcrypt and NextAuth.js.
+- **Encrypted Passwords**: All passwords hashed with bcrypt.
+- **JWT Encryption**: Session tokens signed with `AUTH_SECRET` (wajib diisi — tidak ada fallback).
+- **Input Validation**: Zod schemas on critical endpoints.
+- **Media Protection**: Path traversal prevention, session-scoped media access.
 
 ---
 

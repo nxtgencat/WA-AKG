@@ -11,6 +11,11 @@ const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOSTNAME || "localhost";
 const port = parseInt(process.env.PORT || "3030", 10);
 
+if (!process.env.AUTH_SECRET) {
+  logger.error("Server", "AUTH_SECRET is not set. Generate one with: openssl rand -base64 32");
+  process.exit(1);
+}
+
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 

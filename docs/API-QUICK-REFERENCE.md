@@ -2,6 +2,8 @@
 
 Quick reference guide for common API operations in WA-AKG.
 
+> **Version**: 1.6.1 | **Last Updated**: June 2026
+
 ## Base URL
 
 ```
@@ -16,8 +18,11 @@ Use NextAuth session cookies (automatic when logged in via browser).
 ### API Key
 Add header to all requests:
 ```
-X-API-Key: ak_your-api-key-here
+X-API-Key: wag_your-api-key-here
 ```
+
+> [!TIP]
+> Generate API key via Dashboard → Settings → API Keys. Format: `wag_` + 32 random characters.
 
 ---
 
@@ -368,5 +373,9 @@ except Exception as e:
 ```
 
 ---
+
+<div align="center">
+  **Version**: 1.6.1
+</div>
 
 For complete documentation, see [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
