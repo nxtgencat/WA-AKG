@@ -22,7 +22,7 @@
 - **Auth & Security**: Applied critical auth fixes and proper session resolution in test & logs endpoints.
 - **Docs UI Bug**: Fixed code blocks being invisible on `/docs` page.
 - **JID Suffix**: Stripped device suffix (`:47`) from own JID in webhook receiver/from.
-- **Superadmin Webhooks**: Fixed webhooks created by superadmins not being triggered or displayed for session owners.
+- **Superadmin Webhooks**: Fixed webhooks created by superadmins not being triggered or displayed for session owners. Session owners can now also fully manage (edit, toggle, test, view logs, delete) webhooks created by superadmins on their sessions.
 
 ## [v1.6.1] - 2026-06-27
 
