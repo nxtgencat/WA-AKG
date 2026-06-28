@@ -49,20 +49,28 @@ export async function dispatchWebhook(
             return;
         }
 
-        // Find all active webhooks for this user/session and anyone having shared access
+        // Find all active webhooks for this user/session, shared access, and superadmins
         const accesses = await prisma.sessionAccess.findMany({
             where: { sessionId: session.id },
             select: { userId: true }
         });
         
-        const userIds = [session.userId, ...accesses.map(a => a.userId)];
+        const superadmins = await prisma.user.findMany({
+            where: { role: 'SUPERADMIN' },
+            select: { id: true }
+        });
+        
+        const userIds = [
+            session.userId, 
+            ...accesses.map(a => a.userId),
+            ...superadmins.map(s => s.id)
+        ];
 
         const webhooks = await prisma.webhook.findMany({
             where: {
-                userId: { in: userIds },
                 isActive: true,
                 OR: [
-                    { sessionId: null }, // Global webhooks
+                    { sessionId: null, userId: { in: userIds } }, // Global webhooks
                     { sessionId: session.id } // Session-specific webhooks
                 ]
             }
