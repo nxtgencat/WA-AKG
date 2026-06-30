@@ -1190,6 +1190,10 @@ Get all sessions accessible to the authenticated user (role-based filtering)
     "sessionId": "marketing-1",
     "status": "Connected",
     "userId": "string",
+    "user": {
+      "name": "User Name",
+      "email": "user@example.com"
+    },
     "botConfig": {
       "text": "Hello from WA-AKG!"
     },
@@ -4293,10 +4297,11 @@ Content-Type: application/json
 | Field | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
 | `keyword` | string | ✅ Yes | — |
-| `response` | string | ✅ Yes | — |
+| `response` | string | No | — |
 | `matchType` | string | No | **Options:** `EXACT`, `CONTAINS`, `STARTS_WITH`, `REGEX` |
 | `isMedia` | boolean | No | — |
 | `mediaUrl` | string | No | — |
+| `mediaType` | string | No | **Options:** `image`, `video`, `document`, `audio` |
 | `triggerType` | string | No | **Options:** `ALL`, `GROUP`, `PRIVATE` |
 
 **Example:**
@@ -4307,7 +4312,9 @@ Content-Type: application/json
   "response": "Hi there! How can I help?",
   "matchType": "EXACT",
   "triggerType": "ALL",
-  "isMedia": false
+  "isMedia": false,
+  "mediaUrl": null,
+  "mediaType": null
 }
 ```
 
@@ -4383,9 +4390,10 @@ Content-Type: application/json
 | Field | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
 | `keyword` | string | ✅ Yes | — |
-| `response` | string | ✅ Yes | — |
+| `response` | string | No | — |
 | `isMedia` | boolean | No | — |
 | `mediaUrl` | string | No | — |
+| `mediaType` | string | No | **Options:** `image`, `video`, `document`, `audio` |
 | `triggerType` | string | No | **Options:** `ALL`, `GROUP`, `PRIVATE` |
 
 **Example:**
@@ -4396,7 +4404,9 @@ Content-Type: application/json
   "response": "Hi there! How can I help?",
   "matchType": "EXACT",
   "triggerType": "ALL",
-  "isMedia": false
+  "isMedia": false,
+  "mediaUrl": null,
+  "mediaType": null
 }
 ```
 
@@ -4497,10 +4507,12 @@ Content-Type: application/json
 | Field | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
 | `jid` | string | ✅ Yes | — |
-| `content` | string | ✅ Yes | — |
+| `content` | string | No | — |
 | `sendAt` | string (date-time) | ✅ Yes | — |
 | `mediaUrl` | string | No | — |
-| `mediaType` | string | No | **Options:** `image`, `video`, `document` |
+| `mediaType` | string | No | **Options:** `image`, `video`, `document`, `audio` |
+| `cronExpression` | string | No | **Format:** `*/5 * * * *` |
+| `recurrenceRule` | string | No | JSON string representing recurrence settings |
 
 **Example:**
 
@@ -4510,7 +4522,9 @@ Content-Type: application/json
   "content": "Reminder: Meeting in 10 mins",
   "sendAt": "2024-12-25T10:00:00.000Z",
   "mediaUrl": "https://example.com/image.jpg",
-  "mediaType": "image"
+  "mediaType": "image",
+  "cronExpression": "*/10 * * * *",
+  "recurrenceRule": "{\"type\":\"minutes\",\"value\":10}"
 }
 ```
 
@@ -4586,10 +4600,12 @@ Content-Type: application/json
 | Field | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
 | `jid` | string | ✅ Yes | — |
-| `content` | string | ✅ Yes | — |
+| `content` | string | No | — |
 | `sendAt` | string (date-time) | ✅ Yes | — |
 | `mediaUrl` | string | No | — |
-| `mediaType` | string | No | **Options:** `image`, `video`, `document` |
+| `mediaType` | string | No | **Options:** `image`, `video`, `document`, `audio` |
+| `cronExpression` | string | No | **Format:** `*/5 * * * *` |
+| `recurrenceRule` | string | No | JSON string representing recurrence settings |
 
 **Example:**
 
@@ -4599,7 +4615,9 @@ Content-Type: application/json
   "content": "Updated meeting reminder",
   "sendAt": "2024-12-25T11:00:00.000Z",
   "mediaUrl": "https://example.com/image.jpg",
-  "mediaType": "image"
+  "mediaType": "image",
+  "cronExpression": null,
+  "recurrenceRule": null
 }
 ```
 
